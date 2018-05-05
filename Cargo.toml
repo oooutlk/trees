@@ -1,0 +1,9 @@
+[package]
+name = "trees"
+version = "0.1.0"
+authors = ["oooutlk <oooutlk@outlook.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/oooutlk/trees"
+readme = "README"
+keywords = [ "tree", "forest", "linked", "sibling", "simple" ]
+categories = [ "data-structure", "no-std" ]
