@@ -5,6 +5,6 @@ authors = ["oooutlk <oooutlk@outlook.com>"]
 license = "MIT OR Apache-2.0"
 description = "storing and manipulating tree-like data the simple way"
 repository = "https://github.com/oooutlk/trees"
-readme = "README"
+readme = "README.md"
 keywords = [ "tree", "forest", "linked", "sibling", "simple" ]
 categories = [ "data-structure", "no-std" ]

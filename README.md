@@ -10,5 +10,4 @@ The implementation is straightforward:
 
 2. children nodes, or forest, are singly-linked circular list.
 
-Read more at 
-[docs.rs]: https://docs.rs/trees/
+Read more at [docs.rs]( https://docs.rs/trees/ )
