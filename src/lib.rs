@@ -58,7 +58,7 @@
 //!
 //! 3. Preorder traversal
 //!
-//! ```
+//! ```rust
 //! use std::string::{String,ToString};
 //! use trees::{tr,Node};
 //!
