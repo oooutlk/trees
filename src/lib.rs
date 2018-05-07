@@ -22,7 +22,7 @@
 //! 1. `Tree` notation
 //!
 //! ```rust,no_run
-//! use trees::tr;     // tr stands for tree
+//! use trees::tr;      // tr stands for tree
 //! tr(0);              // A single tree node with data 0. tr(0) has no children
 //! tr(0) /tr(1);       // tr(0) has one child tr(1)
 //! tr(0) /tr(1)/tr(2); // tr(0) has children tr(1) and tr(2)
@@ -37,18 +37,19 @@
 //! 2. `Forest` notation
 //!
 //! ```rust,no_run
-//! use trees::{tr,fr};    // fr stands for forest
-//! fr::<i32>();                   // An empty forest
-//! fr() - tr(1);           // forest has one child tr(1)
-//! - tr(1);                // forest has one child tr(1). The fr() can be omitted. The Neg operator for Tree converts the tree to a forest.
-//! - tr(1) - tr(2);        // forest has child tr(1) and tr(2)
-//! tr(1) - tr(2);          // forest has child tr(1) and tr(2). The leading neg can be omitted.
+//! use trees::{tr,fr}; // fr stands for forest
+//!
+//! fr::<i32>();        // An empty forest
+//! fr() - tr(1);       // forest has one child tr(1)
+//! - tr(1);            // forest has one child tr(1). The fr() can be omitted. The Neg operator for Tree converts the tree to a forest.
+//! - tr(1) - tr(2);    // forest has child tr(1) and tr(2)
+//! tr(1) - tr(2);      // forest has child tr(1) and tr(2). The leading neg can be omitted.
 //! 
 //! // forest has children tr(1) and tr(4), while tr(1) has children tr(2) and tr(3), and tr(4) has children tr(5) and tr(6).
 //! -( tr(1) /tr(2)/tr(3) )
 //! -( tr(4) /tr(5)/tr(6) );
 //!
-//! // A tree tr(0) whose children are the forest descripted above.
+//! // A tree tr(0) whose children equal to the forest descripted above.
 //! tr(0) /(
 //!     -( tr(1) /( -tr(2)-tr(3) ) )
 //!     -( tr(4) /( -tr(5)-tr(6) ) )
@@ -69,7 +70,12 @@
 //!     if node.is_leaf() {
 //!         node.data.to_string()
 //!     } else {
-//!         node.data.to_string() + &"( " + &node.children().fold( String::new(), |s,c| s + &tree_to_string(c) + &" " ) + &")"
+//!         node.data.to_string()
+//!             + &"( "
+//!             + &node.children()
+//!                 .fold( String::new(),
+//!                     |s,c| s + &tree_to_string(c) + &" " )
+//!             + &")"
 //!     }
 //! }
 //!
@@ -249,7 +255,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
     }
 }
 
-/// Wrapper of tree `Node` with the additional function of inserting/removing node at given position in the subtrees in O(tr) time.
+/// Wrapper of tree `Node` with the additional function of inserting/removing node at given position in the subtrees in O(n) time.
 pub struct Subtree<T> {
     curr   : NonNull<Node<T>>,
     prev   : NonNull<Node<T>>,
