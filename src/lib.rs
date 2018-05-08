@@ -15,7 +15,7 @@
 //!
 //! Provides the `Tree`/`Forest` data structures which are suitable for storing hierarchical data built from the bottom up.
 //! 
-//! This crate does not depend on libstd.
+//! This crate does not depend on libstd, and can be regarded as the nonlinear version of std::collections::LinkedList.
 //!
 //! ## Quick start
 //!
@@ -80,6 +80,29 @@
 //! }
 //!
 //! assert_eq!( tree_to_string( &tree ), "0( 1( 2 3 ) 4( 5 6 ) )" );
+//! ```
+//! 
+//! 4. String representation 
+//! 
+//! The `Debug` and `Display` trait has been implemented and are essentially the same as tree_to_tring() mentioned above.
+//!
+//! Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
+//! 
+//! ```rust
+//! use trees::{tr,fr};
+//!
+//! let tree = tr(0) /( tr(1) /tr(2)/tr(3) ) /( tr(4) /tr(5)/tr(6) );
+//! let str_repr = "0( 1( 2 3 ) 4( 5 6 ) )";
+//! assert_eq!( tree.to_string(), str_repr );
+//! assert_eq!( format!( "{:?}", tree ), str_repr );
+//! 
+//! assert_eq!( fr::<i32>().to_string(), "()" );
+//! assert_eq!( format!( "{:?}", fr::<i32>() ), "()" );
+//! 
+//! let forest = -( tr(1) /tr(2)/tr(3) ) -( tr(4) /tr(5)/tr(6) );
+//! let str_repr = "( 1( 2 3 ) 4( 5 6 ) )";
+//! assert_eq!( forest.to_string(), str_repr );
+//! assert_eq!( format!( "{:?}", forest ), str_repr );
 //! ```
 //!
 //! ## Slow start
@@ -166,7 +189,7 @@ use alloc::boxed::Box;
 use core::cmp::Ordering;
 use core::cmp::Ordering::*;
 use core::fmt;
-use core::fmt::{Debug,Formatter};
+use core::fmt::{Debug,Display,Formatter};
 use core::hash::{Hasher,Hash};
 use core::iter::FromIterator;
 use core::marker::PhantomData;
@@ -188,7 +211,7 @@ pub struct Forest<T> {
 }
 
 /// Tree with owned `Node`s.
-#[derive( PartialEq, Eq, Debug )]
+#[derive( PartialEq, Eq )]
 pub struct Tree<T>( Box<Node<T>> );
 
 /// An iterator over the direct decendants of a tree `Node` or `Forest`.
@@ -371,8 +394,7 @@ pub struct SubtreeIter<T> {
     marker : PhantomData<Box<Node<T>>>,
 }
 
-impl<T> Iterator for SubtreeIter<T>
-{
+impl<T> Iterator for SubtreeIter<T> {
     type Item = Subtree<T>;
 
     #[inline]
@@ -414,8 +436,7 @@ pub struct IntoIter<T> {
     marker : PhantomData<Tree<T>>,
 }
 
-impl<T> Iterator for IntoIter<T>
-{
+impl<T> Iterator for IntoIter<T> {
     type Item = Tree<T>;
 
     #[inline]
@@ -424,8 +445,7 @@ impl<T> Iterator for IntoIter<T>
     }
 }
 
-impl<T> IntoIterator for Forest<T>
-{
+impl<T> IntoIterator for Forest<T> {
     type Item = Tree<T>;
     type IntoIter = IntoIter<T>;
 
@@ -436,8 +456,7 @@ impl<T> IntoIterator for Forest<T>
     }
 }
 
-impl<T> FromIterator<Tree<T>> for Forest<T>
-{
+impl<T> FromIterator<Tree<T>> for Forest<T> {
    fn from_iter<I:IntoIterator<Item=Tree<T>>>( iter: I ) -> Self {
         let mut iter = iter.into_iter();
         let mut children = fr::<T>();
@@ -464,8 +483,7 @@ impl<T> Extend<Tree<T>> for Forest<T> {
     }
 }
 
-impl<T:PartialEq> PartialEq for Node<T>
-{
+impl<T:PartialEq> PartialEq for Node<T> {
     fn eq( &self, other: &Self ) -> bool {
         self.data == other.data && self.children().eq( other.children() )
     }
@@ -535,8 +553,7 @@ impl<T:Clone> Clone for Forest<T> {
     }
 }
 
-impl<T:PartialEq> PartialEq for Forest<T>
-{
+impl<T:PartialEq> PartialEq for Forest<T> {
     fn eq( &self, other: &Self ) -> bool {
         self.children().eq( other.children() )
     }
@@ -799,6 +816,27 @@ impl<T> Node<T> {
 }
 
 impl<T> Tree<T> {
+    /// Creates a `Tree` with given data on heap.
+    /// `Tree` is NOT nullable. Consider using an empty `Forest` instead if needed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::Tree;
+    ///
+    /// let tree = Tree::new( 1 );
+    /// assert_eq!( tree.data, 1 );
+    /// ```
+    #[inline]
+    pub fn new( data: T ) -> Tree<T> {
+        Tree( Box::new( Node{
+            next_sib : None,
+            last_chd : None,
+            data     : data,
+            marker   : PhantomData,
+        }))
+    }
+
     /// Append the given trees at the end of the `Tree`'s children list.
     ///
     /// # Examples
@@ -873,6 +911,12 @@ impl<T> DerefMut for Tree<T> {
 }
 
 impl<T> Forest<T> {
+    /// Makes an empty `Forest`
+    #[inline]
+    pub fn new() -> Forest<T> {
+        Forest::<T>{ tail: None, marker: PhantomData }
+    }
+
     /// add the child as the first child
     ///
     /// # Examples
@@ -1185,26 +1229,67 @@ impl<T:Hash> Hash for Forest<T> {
     }
 }
 
-impl<T:Debug> Debug for Node<T>
-{
-    fn fmt( &self, forest: &mut Formatter ) -> fmt::Result {
-        let mut dt = forest.debug_tuple("");
-        dt.field( &self.data );
-        for child in self.children() {
-            dt.field( child );
-        }
-        dt.finish()
+impl<T:Debug> Debug for Tree<T> {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+        self.0.fmt( f )
     }
 }
 
-impl<T:Debug> Debug for Forest<T>
-{
-    fn fmt( &self, forest: &mut Formatter ) -> fmt::Result {
-        let mut dt = forest.debug_tuple("");
-        for child in self.children() {
-            dt.field( child );
+impl<T:Debug> Debug for Node<T> {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+        if self.is_leaf() {
+            write!( f, "{:?}", self.data )
+        } else {
+            write!( f, "{:?}", self.data )?;
+            write!( f, "( " )?;
+            for child in self.children() {
+                write!( f, "{:?} ", child )?;
+            }
+            write!( f, ")" )
         }
-        dt.finish()
+    }
+}
+
+impl<T:Display> Display for Node<T> {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+        if self.is_leaf() {
+            write!( f, "{}", self.data )
+        } else {
+            write!( f, "{}", self.data )?;
+            write!( f, "( " )?;
+            for child in self.children() {
+                write!( f, "{} ", child )?;
+            }
+            write!( f, ")" )
+        }
+    }
+}
+
+impl<T:Debug> Debug for Forest<T> {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+        if self.is_empty() {
+            write!( f, "()" )
+        } else {
+            write!( f, "( " )?;
+            for child in self.children() {
+                write!( f, "{:?} ", child )?;
+            }
+            write!( f, ")" )
+        }
+    }
+}
+
+impl<T:Display> Display for Forest<T> {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+        if self.is_empty() {
+            write!( f, "()" )
+        } else {
+            write!( f, "( " )?;
+            for child in self.children() {
+                write!( f, "{} ", child )?;
+            }
+            write!( f, ")" )
+        }
     }
 }
 
@@ -1225,8 +1310,7 @@ pub type StrForest = Forest<&'static str>;
 pub type StrNode   = Node  <&'static str>;
 
 // - Tree
-impl<T> Neg for Tree<T>
-{
+impl<T> Neg for Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1236,8 +1320,7 @@ impl<T> Neg for Tree<T>
 }
  
 // - &Tree
-impl<'a,T:Clone> Neg for &'a Tree<T>
-{
+impl<'a,T:Clone> Neg for &'a Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1247,8 +1330,7 @@ impl<'a,T:Clone> Neg for &'a Tree<T>
 }
 
 // Tree - Tree
-impl<T> Sub<Self> for Tree<T>
-{
+impl<T> Sub<Self> for Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1258,8 +1340,7 @@ impl<T> Sub<Self> for Tree<T>
 }
 
 // Tree - &Tree
-impl<'a,T:Clone> Sub<&'a Tree<T>> for Tree<T>
-{
+impl<'a,T:Clone> Sub<&'a Tree<T>> for Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1269,8 +1350,7 @@ impl<'a,T:Clone> Sub<&'a Tree<T>> for Tree<T>
 }
 
 // &Tree - Tree
-impl<'a,T:Clone> Sub<Tree<T>> for &'a Tree<T>
-{
+impl<'a,T:Clone> Sub<Tree<T>> for &'a Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1280,8 +1360,7 @@ impl<'a,T:Clone> Sub<Tree<T>> for &'a Tree<T>
 }
 
 // &Tree - &Tree
-impl<'a,T:Clone> Sub<Self> for &'a Tree<T>
-{
+impl<'a,T:Clone> Sub<Self> for &'a Tree<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1291,8 +1370,7 @@ impl<'a,T:Clone> Sub<Self> for &'a Tree<T>
 }
 
 // Tree / Forest
-impl<T> Div<Forest<T>> for Tree<T>
-{
+impl<T> Div<Forest<T>> for Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1302,8 +1380,7 @@ impl<T> Div<Forest<T>> for Tree<T>
 }
 
 // Tree / &Forest
-impl<'a,T:Clone> Div<&'a Forest<T>> for Tree<T>
-{
+impl<'a,T:Clone> Div<&'a Forest<T>> for Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1313,8 +1390,7 @@ impl<'a,T:Clone> Div<&'a Forest<T>> for Tree<T>
 }
 
 // &Tree / Forest
-impl<'a,T:Clone> Div<Forest<T>> for &'a Tree<T>
-{
+impl<'a,T:Clone> Div<Forest<T>> for &'a Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1324,8 +1400,7 @@ impl<'a,T:Clone> Div<Forest<T>> for &'a Tree<T>
 }
 
 // &Tree / &Forest
-impl<'a,T:Clone> Div<&'a Forest<T>> for &'a Tree<T>
-{
+impl<'a,T:Clone> Div<&'a Forest<T>> for &'a Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1335,8 +1410,7 @@ impl<'a,T:Clone> Div<&'a Forest<T>> for &'a Tree<T>
 }
 
 // Tree / Tree
-impl<T> Div<Tree<T>> for Tree<T>
-{
+impl<T> Div<Tree<T>> for Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1346,8 +1420,7 @@ impl<T> Div<Tree<T>> for Tree<T>
 }
 
 // Tree / &Tree
-impl<'a,T:Clone> Div<&'a Tree<T>> for Tree<T>
-{
+impl<'a,T:Clone> Div<&'a Tree<T>> for Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1357,8 +1430,7 @@ impl<'a,T:Clone> Div<&'a Tree<T>> for Tree<T>
 }
 
 // &Tree / Tree
-impl<'a,T:Clone> Div<Tree<T>> for &'a Tree<T>
-{
+impl<'a,T:Clone> Div<Tree<T>> for &'a Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1368,8 +1440,7 @@ impl<'a,T:Clone> Div<Tree<T>> for &'a Tree<T>
 }
 
 // &Tree / &Tree
-impl<'a,T:Clone> Div<Self> for &'a Tree<T>
-{
+impl<'a,T:Clone> Div<Self> for &'a Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1379,8 +1450,7 @@ impl<'a,T:Clone> Div<Self> for &'a Tree<T>
 }
 
 // Tree / ()
-impl<T> Div<()> for Tree<T>
-{
+impl<T> Div<()> for Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1390,8 +1460,7 @@ impl<T> Div<()> for Tree<T>
 }
 
 // &Tree / ()
-impl<'a,T:Clone> Div<()> for &'a Tree<T>
-{
+impl<'a,T:Clone> Div<()> for &'a Tree<T> {
     type Output = Tree<T>;
 
     #[inline]
@@ -1401,8 +1470,7 @@ impl<'a,T:Clone> Div<()> for &'a Tree<T>
 }
 
 // Forest - Tree
-impl<T> Sub<Tree<T>> for Forest<T>
-{
+impl<T> Sub<Tree<T>> for Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1412,8 +1480,7 @@ impl<T> Sub<Tree<T>> for Forest<T>
 }
 
 // Forest - &Tree
-impl<'a,T:Clone> Sub<&'a Tree<T>> for Forest<T>
-{
+impl<'a,T:Clone> Sub<&'a Tree<T>> for Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1423,8 +1490,7 @@ impl<'a,T:Clone> Sub<&'a Tree<T>> for Forest<T>
 }
 
 // &Forest - Tree
-impl<'a,T:Clone> Sub<Tree<T>> for &'a Forest<T>
-{
+impl<'a,T:Clone> Sub<Tree<T>> for &'a Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1434,8 +1500,7 @@ impl<'a,T:Clone> Sub<Tree<T>> for &'a Forest<T>
 }
 
 // &Forest - &Tree
-impl<'a,'b,T:Clone> Sub<&'b Tree<T>> for &'a Forest<T>
-{
+impl<'a,'b,T:Clone> Sub<&'b Tree<T>> for &'a Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1445,8 +1510,7 @@ impl<'a,'b,T:Clone> Sub<&'b Tree<T>> for &'a Forest<T>
 }
 
 // Forest - Forest
-impl<T> Sub<Forest<T>> for Forest<T>
-{
+impl<T> Sub<Forest<T>> for Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1456,8 +1520,7 @@ impl<T> Sub<Forest<T>> for Forest<T>
 }
 
 // Forest - &Forest
-impl<'a,T:Clone> Sub<&'a Forest<T>> for Forest<T>
-{
+impl<'a,T:Clone> Sub<&'a Forest<T>> for Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1467,8 +1530,7 @@ impl<'a,T:Clone> Sub<&'a Forest<T>> for Forest<T>
 }
 
 // &Forest - Forest
-impl<'a,T:Clone> Sub<Forest<T>> for &'a Forest<T>
-{
+impl<'a,T:Clone> Sub<Forest<T>> for &'a Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1478,8 +1540,7 @@ impl<'a,T:Clone> Sub<Forest<T>> for &'a Forest<T>
 }
 
 // &Forest - &Forest
-impl<'a,'b,T:Clone> Sub<&'b Forest<T>> for &'a Forest<T>
-{
+impl<'a,'b,T:Clone> Sub<&'b Forest<T>> for &'a Forest<T> {
     type Output = Forest<T>;
 
     #[inline]
@@ -1501,18 +1562,13 @@ impl<'a,'b,T:Clone> Sub<&'b Forest<T>> for &'a Forest<T>
 /// ```
 #[inline]
 pub fn tr<T>( data: T ) -> Tree<T> {
-    Tree( Box::new( Node{
-        next_sib : None,
-        last_chd : None,
-        data     : data,
-        marker   : PhantomData,
-    }))
+    Tree::<T>::new( data )
 }
 
 /// Makes an empty `Forest`
 #[inline]
 pub fn fr<T>() -> Forest<T> {
-    Forest::<T>{ tail: None, marker: PhantomData }
+    Forest::<T>::new()
 }
 
 #[cfg(test)]

@@ -10,6 +10,8 @@ The implementation is straightforward:
 
 2. children nodes, or forest, are singly-linked circular list.
 
+This crate does not depend on libstd, and can be regarded as the nonlinear version of std::collections::LinkedList.
+
 API document: [docs.rs]( https://docs.rs/trees/ )
 
 # Quick start
@@ -76,7 +78,31 @@ fn tree_to_string<T:ToString>( node: &Node<T> ) -> String {
                                                                                                                                                                                                                                             
 assert_eq!( tree_to_string( &tree ), "0( 1( 2 3 ) 4( 5 6 ) )" );
 ```
-                                                                                                                                                                                                                                            
+
+
+4. String representation 
+
+The `Debug` and `Display` trait has been implemented and are essentially the same as tree_to_tring() mentioned above.
+
+Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
+
+```rust
+use trees::{tr,fr};
+
+let tree = tr(0) /( tr(1) /tr(2)/tr(3) ) /( tr(4) /tr(5)/tr(6) );
+let str_repr = "0( 1( 2 3 ) 4( 5 6 ) )";
+assert_eq!( tree.to_string(), str_repr );
+assert_eq!( format!( "{:?}", tree ), str_repr );
+
+assert_eq!( fr::<i32>().to_string(), "()" );
+assert_eq!( format!( "{:?}", fr::<i32>() ), "()" );
+
+let forest = -( tr(1) /tr(2)/tr(3) ) -( tr(4) /tr(5)/tr(6) );
+let str_repr = "( 1( 2 3 ) 4( 5 6 ) )";
+assert_eq!( forest.to_string(), str_repr );
+assert_eq!( format!( "{:?}", forest ), str_repr );
+```
+ 
 # Slow start
                                                                                                                                                                                                                                             
 ## Concepts

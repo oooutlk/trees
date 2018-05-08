@@ -1,10 +1,11 @@
 [package]
 name = "trees"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["oooutlk <oooutlk@outlook.com>"]
-license = "MIT OR Apache-2.0"
-description = "expressing hierarchical data conveniently and compactly"
-repository = "https://github.com/oooutlk/trees"
+license = "MIT/Apache-2.0"
+keywords = [ "tree", "forest", "linked", "collection", "simple" ]
 readme = "README.md"
-keywords = [ "tree", "forest", "linked", "sibling", "simple" ]
+repository = "https://github.com/oooutlk/trees"
+documentation = "https://docs.rs/trees"
 categories = [ "data-structures", "no-std" ]
+description = "expressing tree-like data structures conveniently and compactly"
