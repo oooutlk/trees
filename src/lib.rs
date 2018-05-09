@@ -13,7 +13,7 @@
 
 //! # trees
 //!
-//! Provides the `Tree`/`Forest` data structures which are suitable for storing hierarchical data built from the bottom up.
+//! Provides the `Tree`/`Forest` data structures.
 //! 
 //! This crate does not depend on libstd, and can be regarded as the nonlinear version of std::collections::LinkedList.
 //!
@@ -158,7 +158,7 @@
 //! 
 //! 3. Using `subtrees()` to iterate over `Subtree`s, you can:
 //! 
-//! * `insert_sib()`, `remove()` node(s) at given position in the children forward list in O(n) time.
+//! * `insert_after()`, `remove()` node(s) at given position in the children forward list in O(n) time.
 //! 
 //! * do whatever `children()` or `children_mut()` allows to do.
 //! 
@@ -279,15 +279,15 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
 }
 
 /// Wrapper of tree `Node` with the additional function of inserting/removing node at given position in the subtrees in O(n) time.
-pub struct Subtree<T> {
+pub struct Subtree<'a, T:'a> {
     curr   : NonNull<Node<T>>,
     prev   : NonNull<Node<T>>,
     ptail  : *mut Option<NonNull<Node<T>>>,
-    marker : PhantomData<Box<Node<T>>>,
+    marker : PhantomData<&'a Node<T>>,
 }
 
-impl<T> Subtree<T> {
-    /// Insert the sib node after `self` node.
+impl<'a, T:'a> Subtree<'a,T> {
+    /// insert `sib` before `self`
     /// The newly inserted node will not be iterated over by the currently running iterator.
     ///
     /// # Examples
@@ -299,28 +299,11 @@ impl<T> Subtree<T> {
     ///
     /// let mut forest = tr(1)-tr(2)-tr(3);
     /// for mut sub in forest.subtrees() {
-    ///         sub.insert_sib( tr(3) );
+    ///         sub.insert_after( tr(3) );
     /// }
     /// assert_eq!( forest, tr(1)-tr(3)-tr(2)-tr(3)-tr(3)-tr(3) );
     /// ```
-    ///
-    /// ## insert before
-    ///
-    /// ```
-    /// use trees::tr;
-    ///
-    /// let mut forest = tr(1)-tr(3)-tr(4);
-    /// let mut iter = forest.subtrees().peekable();
-    /// while let Some(mut sub) = iter.next() { 
-    ///     if let Some(next_sub) = iter.peek() {
-    ///         if next_sub.data == 3 {
-    ///             sub.insert_sib( tr(2) );
-    ///         }
-    ///     }
-    /// }
-    /// assert_eq!( forest, tr(1)-tr(2)-tr(3)-tr(4) );
-    /// ```
-    pub fn insert_sib( &mut self, sib: Tree<T> ) {
+    pub fn insert_after( &mut self, sib: Tree<T> ) {
         unsafe {
             let sib = Box::into_raw_non_null( sib.0 );
             let curr = self.curr.as_ptr();
@@ -329,6 +312,29 @@ impl<T> Subtree<T> {
             if (*self.ptail) == Some(self.curr) {
                 (*self.ptail) = Some(sib);
             }
+        }
+    }
+
+    /// insert `sib` before `self`
+    /// The newly inserted node will not be iterated over by the currently running iterator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::tr;
+    ///
+    /// let mut tree = tr(0) /tr(1)/tr(2)/tr(3);
+    /// for mut sub in tree.subtrees() {
+    ///     sub.insert_before( tr(3) );
+    /// }
+    /// assert_eq!( tree, tr(0) /tr(3)/tr(1)/tr(3)/tr(2)/tr(3)/tr(3) );
+    /// ```
+    pub fn insert_before( &mut self, sib: Tree<T> ) {
+        unsafe {
+            let sib = Box::into_raw_non_null( sib.0 );
+            let prev = self.prev.as_ptr();
+            (*sib.as_ptr()).next_sib = Some(self.curr);
+            (*prev).next_sib = Some(sib); 
         }
     }
 
@@ -362,7 +368,7 @@ impl<T> Subtree<T> {
     }
 }
 
-impl<T> Deref for Subtree<T> {
+impl<'a, T:'a> Deref for Subtree<'a,T> {
     type Target = Node<T>;
 
    fn deref( &self ) -> &Node<T> {
@@ -370,7 +376,7 @@ impl<T> Deref for Subtree<T> {
    }
 }
 
-impl<T> DerefMut for Subtree<T> {
+impl<'a, T:'a> DerefMut for Subtree<'a,T> {
     fn deref_mut( &mut self ) -> &mut Node<T> {
         unsafe { self.curr.as_mut() }
     }
@@ -385,20 +391,20 @@ impl<T> DerefMut for Subtree<T> {
 /// [`Node`]: struct.Node.html
 /// [`subtrees`]: struct.Forest.html#method.subtrees
 /// [`Forest`]: struct.Forest.html
-pub struct SubtreeIter<T> {
+pub struct SubtreeIter<'a, T:'a> {
     next   : Option<NonNull<Node<T>>>,
     curr   : Option<NonNull<Node<T>>>,
     prev   : Option<NonNull<Node<T>>>,
     tail   : Option<NonNull<Node<T>>>,
     ptail  : *mut Option<NonNull<Node<T>>>,
-    marker : PhantomData<Box<Node<T>>>,
+    marker : PhantomData<&'a Node<T>>,
 }
 
-impl<T> Iterator for SubtreeIter<T> {
-    type Item = Subtree<T>;
+impl<'a, T:'a> Iterator for SubtreeIter<'a,T> {
+    type Item = Subtree<'a,T>;
 
     #[inline]
-    fn next( &mut self ) -> Option<Subtree<T>> {
+    fn next( &mut self ) -> Option<Subtree<'a,T>> {
         unsafe {
             if let Some(tail) = self.tail {
                 if let Some(curr) = self.curr {
@@ -741,7 +747,7 @@ impl<T> Node<T> {
     ///
     /// let mut tree = tr(0) /tr(1)/tr(2)/tr(3);
     /// for mut sub in tree.subtrees() {
-    ///     sub.insert_sib( tr(3) );
+    ///     sub.insert_after( tr(3) );
     /// }
     /// assert_eq!( tree, tr(0) /tr(1)/tr(3)/tr(2)/tr(3)/tr(3)/tr(3) );
     /// ```
@@ -751,16 +757,12 @@ impl<T> Node<T> {
     /// ```
     /// use trees::tr;
     ///
-    /// let mut tree = tr(0) /tr(1)/tr(3)/tr(4);
-    /// let mut iter = tree.subtrees().peekable();
-    /// while let Some(mut sub) = iter.next() { 
-    ///     if let Some(next_sub) = iter.peek() {
-    ///         if next_sub.data == 3 {
-    ///             sub.insert_sib( tr(2) );
-    ///         }
-    ///     }
+    /// let mut tree = tr(0) /tr(1)/tr(2)/tr(3);
+    /// for mut sub in tree.subtrees() {
+    ///     sub.insert_before( tr(3) );
     /// }
-    /// assert_eq!( tree, tr(0) /tr(1)/tr(2)/tr(3)/tr(4) );
+    /// assert_eq!( tree, tr(0) /tr(3)/tr(1)/tr(3)/tr(2)/tr(3)/tr(3) );
+    ///
     /// ```
     ///
     /// ## remove
@@ -1125,7 +1127,7 @@ impl<T> Forest<T> {
     ///
     /// let mut forest = tr(1)-tr(2)-tr(3);
     /// for mut sub in forest.subtrees() {
-    ///     sub.insert_sib( tr(3) );
+    ///     sub.insert_after( tr(3) );
     /// }
     /// assert_eq!( forest, tr(1)-tr(3)-tr(2)-tr(3)-tr(3)-tr(3) );
     /// ```
@@ -1135,16 +1137,11 @@ impl<T> Forest<T> {
     /// ```
     /// use trees::tr;
     ///
-    /// let mut forest = tr(1)-tr(3)-tr(4);
-    /// let mut iter = forest.subtrees().peekable();
-    /// while let Some(mut sub) = iter.next() { 
-    ///     if let Some(next_sub) = iter.peek() {
-    ///         if next_sub.data == 3 {
-    ///             sub.insert_sib( tr(2) );
-    ///         }
-    ///     }
+    /// let mut tree = tr(0) /tr(1)/tr(2)/tr(3);
+    /// for mut sub in tree.subtrees() {
+    ///     sub.insert_before( tr(3) );
     /// }
-    /// assert_eq!( forest, tr(1)-tr(2)-tr(3)-tr(4) );
+    /// assert_eq!( tree, tr(0) /tr(3)/tr(1)/tr(3)/tr(2)/tr(3)/tr(3) );
     /// ```
     ///
     /// ## remove
@@ -1293,17 +1290,20 @@ impl<T:Display> Display for Forest<T> {
     }
 }
 
-unsafe impl<T: Send> Send for Node<T> {}
-unsafe impl<T: Sync> Sync for Node<T> {}
+unsafe impl<T:Send> Send for Node<T> {}
+unsafe impl<T:Sync> Sync for Node<T> {}
 
-unsafe impl<T: Send> Send for Forest<T> {}
-unsafe impl<T: Sync> Sync for Forest<T> {}
+unsafe impl<T:Send> Send for Forest<T> {}
+unsafe impl<T:Sync> Sync for Forest<T> {}
 
-unsafe impl<'a, T: Sync> Send for Iter<'a, T> {}
-unsafe impl<'a, T: Sync> Sync for Iter<'a, T> {}
+unsafe impl<T:Send> Send for Tree<T> {}
+unsafe impl<T:Sync> Sync for Tree<T> {}
 
-unsafe impl<'a, T: Send> Send for IterMut<'a, T> {}
-unsafe impl<'a, T: Sync> Sync for IterMut<'a, T> {}
+unsafe impl<'a, T:Sync> Send for Iter<'a, T> {}
+unsafe impl<'a, T:Sync> Sync for Iter<'a, T> {}
+
+unsafe impl<'a, T:Send> Send for IterMut<'a, T> {}
+unsafe impl<'a, T:Sync> Sync for IterMut<'a, T> {}
 
 pub type StrTree   = Tree  <&'static str>;
 pub type StrForest = Forest<&'static str>;
