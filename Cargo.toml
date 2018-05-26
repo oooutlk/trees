@@ -1,6 +1,6 @@
 [package]
 name = "trees"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["oooutlk <oooutlk@outlook.com>"]
 license = "MIT/Apache-2.0"
 keywords = [ "tree", "forest", "linked", "collection", "simple" ]
@@ -8,4 +8,7 @@ readme = "README.md"
 repository = "https://github.com/oooutlk/trees"
 documentation = "https://docs.rs/trees"
 categories = [ "data-structures", "no-std" ]
-description = "a fundamental library for storing and manipulating tree-like data structures"
+description = "General purpose tree data structures"
+
+[features]
+no_std = []
