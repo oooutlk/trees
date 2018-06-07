@@ -1,36 +1,37 @@
 //! Tree node implementation.
 
 use super::{Tree,Forest,Iter,IterMut,SubtreeIter};
+use super::Walk;
 use rust::*;
 
 pub struct Node<T> {
-    pub(crate) down  : *mut Node<T>, // last child
-    pub(crate) right : *mut Node<T>, // next sibling
-    pub        data  : T,
+    pub(crate) sib  : *mut Node<T>, // next sibling
+    pub(crate) sub  : *mut Node<T>, // last child
+    pub        data : T,
 }
 
 impl<T> Node<T> {
-    #[inline] pub(crate) fn set_child( &mut self, child: *mut Node<T> ) { self.down = child; }
+    #[inline] pub(crate) fn set_child( &mut self, child: *mut Node<T> ) { self.sub = child; }
     #[inline] pub(crate) fn reset_child( &mut self ) { self.set_child( null_mut() ); }
-    #[inline] pub fn is_leaf( &self ) -> bool { self.down.is_null() }
+    #[inline] pub fn is_leaf( &self ) -> bool { self.sub.is_null() }
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
 
-    #[inline] pub(crate) fn set_sib( &mut self, right: *mut Self ) { self.right = right; }
-    #[inline] pub(crate) fn reset_sib( &mut self ) { self.right = self as *mut Self; }
-    #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.right as *const Self == self as *const Self }
+    #[inline] pub(crate) fn set_sib( &mut self, sib: *mut Self ) { self.sib = sib; }
+    #[inline] pub(crate) fn reset_sib( &mut self ) { self.sib = self as *mut Self; }
+    #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.sib as *const Self == self as *const Self }
 
-    #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { (*self.down).right }
-    #[inline] pub(crate) fn tail( &self ) -> *mut Self { self.down }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).right }
+    #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { (*self.sub).sib }
+    #[inline] pub(crate) fn tail( &self ) -> *mut Self { self.sub }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).sib }
 
-    #[inline] pub(crate) unsafe fn adopt( &mut self, child: *mut Node<T> ) { (*self.tail()).right = child; }
+    #[inline] pub(crate) unsafe fn adopt( &mut self, child: *mut Node<T> ) { (*self.tail()).sib = child; }
 
     /// Adds the tree as the first child.
     ///
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.push_front( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 2 1 )" );
@@ -52,7 +53,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.push_back( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
@@ -73,7 +74,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// assert_eq!( tree.pop_front(), Some( tr(1) ));
     /// assert_eq!( tree.to_string(), "0( 2 )" );
@@ -86,7 +87,7 @@ impl<T> Node<T> {
             if self.has_only_one_child() {
                 self.reset_child();
             } else {
-                (*self.tail()).right = self.new_head();
+                (*self.tail()).sib = self.new_head();
             }
             (*front).reset_sib();
             Some( Tree::from( front ))
@@ -99,7 +100,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.prepend( -tr(2)-tr(3) );
     /// assert_eq!( tree.to_string(), "0( 2 3 1 )" );
@@ -122,7 +123,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.append( -tr(2)-tr(3) );
     /// assert_eq!( tree.to_string(), "0( 1 2 3 )" );
@@ -147,7 +148,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let tree = tr(0) /tr(1)/tr(2);
     /// let mut iter = tree.children();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
@@ -167,7 +168,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::local::tr;
+    /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// for child in tree.children_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
@@ -187,20 +188,54 @@ impl<T> Node<T> {
             if self.is_leaf() {
                 SubtreeIter {
                     next: null_mut(), curr: null_mut(), prev: null_mut(), tail: null_mut(),
-                    down : &mut self.down as *mut *mut Node<T>,
+                    sub : &mut self.sub as *mut *mut Node<T>,
                     mark: PhantomData,
                 }
             } else {
                 SubtreeIter {
                     next : self.head(),
                     curr : null_mut(),
-                    prev : self.down,
-                    tail : self.down,
-                    down : &mut self.down as *mut *mut Node<T>,
+                    prev : self.sub,
+                    tail : self.sub,
+                    sub : &mut self.sub as *mut *mut Node<T>,
                     mark : PhantomData,
                 }
             }
         }
+    }
+
+    /// Depth first search on `Node`.
+    /// Preorder or postorder at will.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::{tr,Visit};
+    /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+    /// let mut dfs = tree.walk();
+    /// assert_eq!( dfs.next(), Some( Visit::Begin( tree.root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(2).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(3).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(1)/tr(2)/tr(3)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(4)/tr(5)/tr(6)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(5).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(6).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(4)/tr(5)/tr(6)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::End  ( tree.root() )));
+    /// assert_eq!( dfs.next(), None );
+    /// ```
+    #[inline] pub fn walk( &self ) -> Walk<T> { Walk::new( self )}
+}
+
+impl<T:Clone> ToOwned for Node<T> {
+    type Owned = Tree<T>;
+    fn to_owned( &self ) -> Self::Owned {
+        let mut tree = Tree::new( self.data.clone() );
+        for child in self.children() {
+            tree.push_back( child.to_owned() );
+        }
+        tree
     }
 }
 
@@ -214,17 +249,16 @@ impl<T> Extend<Tree<T>> for Node<T> {
 
 impl<T:Debug> Debug for Node<T> {
     fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
-        write!( f, "{:?} {:?}", self.data, self as *const Self )?;
-        if !self.down.is_null() { write!( f, "_{:?}", self.down )?; }
-        if self.right as *const Self != self as *const Self { write!( f, ">{:?}", self.right )?; }
-        if !self.is_leaf() {
+        if self.is_leaf() {
+            self.data.fmt(f)
+        } else {
+            self.data.fmt(f)?;
             write!( f, "( " )?;
             for child in self.children() {
                 write!( f, "{:?} ", child )?;
             }
-            write!( f, ")" )?;
+            write!( f, ")" )
         }
-        write!( f, "" )
     }
 }
 

@@ -25,7 +25,7 @@ impl<'a, T:'a> Iterator for Iter<'a, T> {
             self.head = if self.head == self.tail {
                 null()
             } else {
-                (*node).right
+                (*node).sib
             };
             Some( &*node )
         }}
@@ -62,7 +62,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
             self.head = if self.head == self.tail {
                 null_mut()
             } else {
-                (*node).right
+                (*node).sib
             };
             Some( &mut *node )
         }}

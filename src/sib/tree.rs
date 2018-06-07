@@ -6,8 +6,8 @@ use rust::*;
 
 /// A non-nullable tree
 pub struct Tree<T> {
-    pub(crate) root: *mut Node<T>,
-    mark: PhantomData<heap::Phantom<T>>,
+    pub(crate) root : *mut Node<T>,
+    mark            : heap::Phantom<T>,
 }
 
 impl<T> Tree<T> {
@@ -28,7 +28,7 @@ impl<T> Tree<T> {
     /// assert_eq!( tree, tr(0) );
     /// ```
     #[inline] pub fn abandon( &mut self ) -> Forest<T> {
-        let forest = Forest::<T>::from( self.down );
+        let forest = Forest::<T>::from( self.sub );
         self.reset_child();
         forest
     }
@@ -49,15 +49,7 @@ impl<T> DerefMut for Tree<T> {
     fn deref_mut( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
 }
 
-pub(crate) fn tree_clone_from_node<T:Clone>( node: &Node<T> ) -> Tree<T> {
-    let mut tree = Tree::new( node.data.clone() );
-    for child in node.children() {
-        tree.push_back( tree_clone_from_node( child ));
-    }
-    tree
-}
-
-impl<T:Clone> Clone for Tree<T> { fn clone( &self ) -> Self { tree_clone_from_node( self )}}
+impl<T:Clone> Clone for Tree<T> { fn clone( &self ) -> Self { self.root().to_owned() }}
 
 impl<T> Drop for Tree<T> {
     fn drop( &mut self ) {

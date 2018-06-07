@@ -8,7 +8,7 @@ use rust::*;
 pub struct Subtree<'a, T:'a>{
     node : &'a mut Node<T>,
     prev : *mut Node<T>,
-    down : *mut *mut Node<T>,
+    sub : *mut *mut Node<T>,
 }
 
 impl<'a, T:'a> Subtree<'a,T> {
@@ -25,8 +25,8 @@ impl<'a, T:'a> Subtree<'a,T> {
     /// ```
     #[inline] pub fn insert_before( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            sib.root_mut().right = self.node as *mut Node<T>;
-            (*self.prev).right = sib.root_mut();
+            sib.root_mut().sib = self.node as *mut Node<T>;
+            (*self.prev).sib = sib.root_mut();
         }
         sib.clear();
     }
@@ -44,10 +44,10 @@ impl<'a, T:'a> Subtree<'a,T> {
     /// ```
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*sib.root_mut()).right = self.node.right;
-            self.node.right = sib.root_mut();
-            if (*self.down) == self.node as *mut Node<T> {
-                *self.down = sib.root_mut();
+            (*sib.root_mut()).sib = self.node.sib;
+            self.node.sib = sib.root_mut();
+            if (*self.sub) == self.node as *mut Node<T> {
+                *self.sub = sib.root_mut();
             }
         }
         sib.clear();
@@ -66,14 +66,14 @@ impl<'a, T:'a> Subtree<'a,T> {
     /// ```
     #[inline] pub fn depart( self ) -> Tree<T> {
         unsafe {
-            if (*self.down) == self.node as *mut Node<T> {
-                *self.down = if self.node.has_no_sib() {
+            if (*self.sub) == self.node as *mut Node<T> {
+                *self.sub = if self.node.has_no_sib() {
                     null_mut()
                 } else {
                     self.prev
                 }
             }
-            (*self.prev).right = self.node.right;
+            (*self.prev).sib = self.node.sib;
             self.node.reset_sib();
             Tree::from( self.node as *mut Node<T> )
         }
@@ -93,7 +93,7 @@ pub struct SubtreeIter<'a, T:'a>{
     pub(crate) curr : *mut Node<T>,
     pub(crate) prev : *mut Node<T>,
     pub(crate) tail : *mut Node<T>,
-    pub(crate) down : *mut *mut Node<T>,
+    pub(crate) sub : *mut *mut Node<T>,
     pub(crate) mark : PhantomData<&'a mut Node<T>>,
 }
 
@@ -107,8 +107,8 @@ impl<'a, T:'a> Iterator for SubtreeIter<'a,T> {
                     return None;
                 }
                 unsafe { 
-                    if (*self.prev).right != self.next { 
-                        self.prev = self.curr; // curr is not remove()-ed
+                    if (*self.prev).sib != self.next { 
+                        self.prev = self.curr; // curr did not depart()-ed
                     }
                 }
             }
@@ -116,8 +116,8 @@ impl<'a, T:'a> Iterator for SubtreeIter<'a,T> {
             if !self.next.is_null() {
                 let curr = self.next;
                 unsafe { 
-                    self.next = (*curr).right;
-                    return Some( Subtree{ node: &mut *curr, prev: self.prev, down: self.down });
+                    self.next = (*curr).sib;
+                    return Some( Subtree{ node: &mut *curr, prev: self.prev, sub: self.sub });
                 }
             }
         }

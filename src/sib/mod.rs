@@ -1,4 +1,4 @@
-//! `Tree`/`Forest` implemented in fully-linked `Node`s allocated on heap, which contain pointers of parent, child, prev sib and next sib.
+//! `Tree`/`Forest` implemented in last-child/next-sibling `Node`s, allocated on heap
 
 pub(crate) mod tree;
 pub use self::tree::Tree; 
@@ -19,6 +19,10 @@ pub(crate) mod subtree;
 pub use self::subtree::{Subtree,SubtreeIter}; 
 
 pub(crate) mod heap;
+
+pub mod walk;
+pub use self::walk::{Walk,Visit};
+
 #[cfg(test)]
 mod tests {
     use super::*;

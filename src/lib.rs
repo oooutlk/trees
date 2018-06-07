@@ -12,9 +12,9 @@
 //! General purpose tree library.
 //!
 //! The current version provides the tree implemented in classic child-sibling nodes.
-//! More diffrent trees will be added in the future.
+//! More kinds of trees may be added in the future.
 //!
-//! [`local`]: local/index.html
+//! [`signly_linked`]: signly_linked/index.html
 //!
 //! This crate can be used with or without libstd. 
 //!
@@ -57,7 +57,7 @@
 //!     );
 //!     ```
 //!
-//! 3. Preorder traversal
+//! 3. `Tree` traversal, using `Node::children()` recursively
 //!
 //!     ```rust
 //!     use std::string::{String,ToString};
@@ -82,10 +82,49 @@
 //!
 //!     assert_eq!( tree_to_string( &tree ), "0( 1( 2 3 ) 4( 5 6 ) )" );
 //!     ```
+//!
+//! 4. `Tree`/`Forest` traversal, using `Walk` directly 
+//!
+//!     ```rust
+//!     use std::string::{String,ToString};
+//!     use trees::{tr,Node,Walk,Visit};
+//!
+//!     let tree = tr(0)
+//!         /( tr(1) /tr(2)/tr(3) )
+//!         /( tr(4) /tr(5)/tr(6) );
+//!
+//!     let mut dfs = Walk::default();
+//!     dfs.on( &tree );
+//!     // this also works: let mut dfs = tree.walk();
+//!
+//!     let str_repr = dfs.fold( String::new(), |acc,visit| acc + &{
+//!         match visit {
+//!             Visit::Begin( node ) => node.data.to_string() + &"( ",
+//!             Visit::End  ( _    ) => ") ".to_string(),
+//!             Visit::Leaf ( node ) => node.data.to_string() + &" ",
+//!     }});
+//!
+//!     assert_eq!( str_repr, "0( 1( 2 3 ) 4( 5 6 ) ) " ); // trailing space
+//!
+//!     let forest = - ( tr(1) /tr(2)/tr(3) ) - ( tr(4) /tr(5)/tr(6) );
+//!
+//!     let mut dfs = Walk::default();
+//!     dfs.on( &forest.last().unwrap() );
+//!     // this also works: let mut dfs = forest.walk();
+//!
+//!     let str_repr = dfs.fold( String::new(), |acc,visit| acc + &{
+//!         match visit {
+//!             Visit::Begin( node ) => node.data.to_string() + &"( ",
+//!             Visit::End  ( _    ) => ") ".to_string(),
+//!             Visit::Leaf ( node ) => node.data.to_string() + &" ",
+//!     }});
+//!
+//!     assert_eq!( str_repr, "1( 2 3 ) 4( 5 6 ) " ); // no outmost parentheses
+//!     ```
 //! 
-//! 4. String representation 
+//! 5. String representation 
 //! 
-//!     The `Display` trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
+//!     The `Debug` and `Display` trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
 //!
 //!     Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
 //!     
@@ -95,15 +134,14 @@
 //!     let tree = tr(0) /( tr(1) /tr(2)/tr(3) ) /( tr(4) /tr(5)/tr(6) );
 //!     let str_repr = "0( 1( 2 3 ) 4( 5 6 ) )";
 //!     assert_eq!( tree.to_string(), str_repr );
-//!     assert_eq!( format!( "{}", tree ), str_repr );
+//!     assert_eq!( format!( "{:?}", tree ), str_repr );
 //!     
 //!     assert_eq!( fr::<i32>().to_string(), "()" );
-//!     assert_eq!( format!( "{}", fr::<i32>() ), "()" );
 //!     
 //!     let forest = -( tr(1) /tr(2)/tr(3) ) -( tr(4) /tr(5)/tr(6) );
 //!     let str_repr = "( 1( 2 3 ) 4( 5 6 ) )";
 //!     assert_eq!( forest.to_string(), str_repr );
-//!     assert_eq!( format!( "{}", forest ), str_repr );
+//!     assert_eq!( format!( "{:?}", fr::<i32>() ), "()" );
 //!     ```
 //!
 //! ## Slow start
@@ -136,7 +174,7 @@
 //!
 //!     let mut tree: Tree<i32>  = tr(0) /tr(1)/tr(2)/tr(3);
 //!     {
-//!         let root: &Node<i32> = tree.borrow(); // tree.root() is used more often
+//!         let root: &Node<i32> = tree.borrow(); // you can also use tree.root()
 //!         let first_child : &Node<i32> = tree.children().next().unwrap();
 //!         let second_child: &Node<i32> = tree.children().nth(2).unwrap();
 //!         let third_child : &Node<i32> = tree.children().last().unwrap();
@@ -169,6 +207,12 @@
 //! 4. Using `Forest::<T>::into_iter()` to iterate over `Tree`s, you can:
 //! 
 //!     do whatever you want to.
+//! 
+//! 5. Using `walk()` to iterate over `Node`s, you can:
+//! 
+//!     5.1 read the data associated with each descendant node in depth first manner, preorder or postorder at will.
+//! 
+//!     5.2 visit `Node`s irregularly, unlike the iterators mentioned above that are usually called intensively.
 //! 
 //! ### Resource management
 //!
@@ -204,10 +248,12 @@ mod rust {
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::{PhantomData};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Deref,DerefMut,Div,Neg,Sub};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{null,null_mut};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
     #[cfg(feature="no_std")] extern crate alloc;
-    #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut};
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::vec::Vec;
     #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering;
     #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::*;
     #[cfg(feature="no_std")] pub(crate) use core::fmt;
@@ -219,5 +265,5 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{null,null_mut};
 }
 
-pub mod local;
-pub use local::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subtree,SubtreeIter};
+pub mod sib;
+pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subtree,SubtreeIter,Walk,Visit};

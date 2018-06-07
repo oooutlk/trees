@@ -1,12 +1,13 @@
 //! `Forest` composed of disjoint `Tree`s.
 
 use super::{Node,Tree,Iter,IterMut,SubtreeIter};
+use super::Walk;
 use rust::*;
 
 /// A nullable forest
 pub struct Forest<T> {
-    down : *mut Node<T>,
-    mark : PhantomData<super::heap::Phantom<T>>,
+    sub : *mut Node<T>,
+    mark : super::heap::Phantom<T>,
 }
 
 impl<T> Forest<T> {
@@ -26,25 +27,35 @@ impl<T> Forest<T> {
     /// forest.push_back( tr(1) ); 
     /// assert!( !forest.is_empty() );
     /// ```
-    #[inline] pub fn is_empty( &self ) -> bool { self.down.is_null() }
+    #[inline] pub fn is_empty( &self ) -> bool { self.sub.is_null() }
 
-    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.down = node; }
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ down: node, mark: PhantomData } }
-    #[inline] pub(crate) fn clear( &mut self ) { self.down = null_mut(); }
+    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.sub = node; }
+    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ sub: node, mark: PhantomData } }
+    #[inline] pub(crate) fn clear( &mut self ) { self.sub = null_mut(); }
 
-    #[inline] pub(crate) unsafe fn set_sib( &mut self, right: *mut Node<T> ) {
-        (*self.tail()).right = right;
+    #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) {
+        (*self.tail()).sib = sib;
     }
 
-    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.down).right }
-    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.down }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).right }
+    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.sub).sib }
+    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.sub }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).sib }
 
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
 
     #[inline] pub(crate) fn adopt( &mut self, child: *mut Node<T> ) {
         unsafe {
-            (*self.tail()).right = child;
+            (*self.tail()).sib = child;
+        }
+    }
+
+    /// Returns the last child.
+    ///
+    pub fn last( &self ) -> Option<&Node<T>> {
+        if self.is_empty() {
+            None
+        } else {
+            unsafe { Some( &*self.tail() )}
         }
     }
 
@@ -107,7 +118,7 @@ impl<T> Forest<T> {
             if self.has_only_one_child() {
                 self.clear();
             } else {
-                (*self.tail()).right = self.new_head();
+                (*self.tail()).sib = self.new_head();
             }
             (*front).reset_sib();
             Some( Tree::from( front ))
@@ -206,29 +217,55 @@ impl<T> Forest<T> {
             if self.is_empty() {
                 SubtreeIter {
                     next: null_mut(), curr: null_mut(), prev: null_mut(), tail: null_mut(),
-                    down : &mut self.down as *mut *mut Node<T>,
+                    sub : &mut self.sub as *mut *mut Node<T>,
                     mark: PhantomData,
                 }
             } else {
                 SubtreeIter {
                     next : self.head(),
                     curr : null_mut(),
-                    prev : self.down,
-                    tail : self.down,
-                    down : &mut self.down as *mut *mut Node<T>,
+                    prev : self.sub,
+                    tail : self.sub,
+                    sub : &mut self.sub as *mut *mut Node<T>,
                     mark : PhantomData,
                 }
             }
         }
     }
 
+    /// Depth first search on `Forest`.
+    /// Preorder or postorder at will.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::{tr,Visit};
+    /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
+    /// let mut dfs = forest.walk();
+    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(2).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(3).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(1)/tr(2)/tr(3)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(4)/tr(5)/tr(6)).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(5).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(6).root() )));
+    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(4)/tr(5)/tr(6)).root() )));
+    /// assert_eq!( dfs.next(), None );
+    /// ```
+    #[inline] pub fn walk( &self ) -> Walk<T> {
+        if self.is_empty() {
+            Walk::default()
+        } else { unsafe {
+            Walk::new( &*self.tail() )
+        }}
+    }
 }
 
 impl<T:Clone> Clone for Forest<T> {
     fn clone( &self ) -> Self {
         let mut forest = Forest::<T>::new();
         for child in self.children() {
-            forest.push_back( super::tree::tree_clone_from_node( child ));
+            forest.push_back( child.to_owned() );
         }
         forest
     }

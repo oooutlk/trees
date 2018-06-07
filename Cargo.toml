@@ -1,9 +1,9 @@
 [package]
 name = "trees"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["oooutlk <oooutlk@outlook.com>"]
 license = "MIT/Apache-2.0"
-keywords = [ "tree", "forest", "linked", "collection", "simple" ]
+keywords = [ "tree", "forest", "node", "simple", "linked" ]
 readme = "README.md"
 repository = "https://github.com/oooutlk/trees"
 documentation = "https://docs.rs/trees"
