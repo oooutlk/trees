@@ -38,6 +38,12 @@ impl<'a, T:'a> Iter<'a, T> {
     }
 }
 
+impl<'a, T> Clone for Iter<'a, T> {
+    fn clone(&self) -> Self {
+        Iter { ..*self }
+    }
+}
+
 /// A mutable iterator over the sub `Node`s of a `Node` or `Forest`.
 ///
 /// This `struct` is created by [`Node::children_mut`] and [`Forest::children_mut`].

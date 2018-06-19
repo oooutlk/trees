@@ -21,7 +21,7 @@ pub use self::subtree::{Subtree,SubtreeIter};
 pub(crate) mod heap;
 
 pub mod walk;
-pub use self::walk::{Walk,Visit};
+pub use self::walk::{Visit,TreeWalk,ForestWalk};
 
 #[cfg(test)]
 mod tests {

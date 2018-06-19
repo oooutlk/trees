@@ -1,7 +1,6 @@
 //! `Forest` composed of disjoint `Tree`s.
 
 use super::{Node,Tree,Iter,IterMut,SubtreeIter};
-use super::Walk;
 use rust::*;
 
 /// A nullable forest
@@ -49,13 +48,43 @@ impl<T> Forest<T> {
         }
     }
 
-    /// Returns the last child.
-    ///
+    /// Returns the first child of the forest,
+    /// or None if it is empty.
+    pub fn first( &self ) -> Option<&Node<T>> {
+        if self.is_empty() {
+            None
+        } else {
+            unsafe { Some( &*self.head() )}
+        }
+    }
+
+    /// Returns a mutable pointer to the first child of the forest,
+    /// or None if it is empty.
+    pub fn first_mut( &mut self ) -> Option<&mut Node<T>> {
+        if self.is_empty() {
+            None
+        } else {
+            unsafe { Some( &mut *self.head() )}
+        }
+    }
+
+    /// Returns the last child of the forest,
+    /// or None if it is empty.
     pub fn last( &self ) -> Option<&Node<T>> {
         if self.is_empty() {
             None
         } else {
             unsafe { Some( &*self.tail() )}
+        }
+    }
+
+    /// Returns a mutable pointer to the last child of the forest,
+    /// or None if it is empty.
+    pub fn last_mut( &mut self ) -> Option<&mut Node<T>> {
+        if self.is_empty() {
+            None
+        } else {
+            unsafe { Some( &mut *self.tail() )}
         }
     }
 
@@ -231,33 +260,6 @@ impl<T> Forest<T> {
                 }
             }
         }
-    }
-
-    /// Depth first search on `Forest`.
-    /// Preorder or postorder at will.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use trees::{tr,Visit};
-    /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
-    /// let mut dfs = forest.walk();
-    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(2).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(3).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(1)/tr(2)/tr(3)).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::Begin( (tr(4)/tr(5)/tr(6)).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(5).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::Leaf ( tr(6).root() )));
-    /// assert_eq!( dfs.next(), Some( Visit::End  ( (tr(4)/tr(5)/tr(6)).root() )));
-    /// assert_eq!( dfs.next(), None );
-    /// ```
-    #[inline] pub fn walk( &self ) -> Walk<T> {
-        if self.is_empty() {
-            Walk::default()
-        } else { unsafe {
-            Walk::new( &*self.tail() )
-        }}
     }
 }
 

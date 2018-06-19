@@ -83,46 +83,7 @@
 //!     assert_eq!( tree_to_string( &tree ), "0( 1( 2 3 ) 4( 5 6 ) )" );
 //!     ```
 //!
-//! 4. `Tree`/`Forest` traversal, using `Walk` directly 
-//!
-//!     ```rust
-//!     use std::string::{String,ToString};
-//!     use trees::{tr,Node,Walk,Visit};
-//!
-//!     let tree = tr(0)
-//!         /( tr(1) /tr(2)/tr(3) )
-//!         /( tr(4) /tr(5)/tr(6) );
-//!
-//!     let mut dfs = Walk::default();
-//!     dfs.on( &tree );
-//!     // this also works: let mut dfs = tree.walk();
-//!
-//!     let str_repr = dfs.fold( String::new(), |acc,visit| acc + &{
-//!         match visit {
-//!             Visit::Begin( node ) => node.data.to_string() + &"( ",
-//!             Visit::End  ( _    ) => ") ".to_string(),
-//!             Visit::Leaf ( node ) => node.data.to_string() + &" ",
-//!     }});
-//!
-//!     assert_eq!( str_repr, "0( 1( 2 3 ) 4( 5 6 ) ) " ); // trailing space
-//!
-//!     let forest = - ( tr(1) /tr(2)/tr(3) ) - ( tr(4) /tr(5)/tr(6) );
-//!
-//!     let mut dfs = Walk::default();
-//!     dfs.on( &forest.last().unwrap() );
-//!     // this also works: let mut dfs = forest.walk();
-//!
-//!     let str_repr = dfs.fold( String::new(), |acc,visit| acc + &{
-//!         match visit {
-//!             Visit::Begin( node ) => node.data.to_string() + &"( ",
-//!             Visit::End  ( _    ) => ") ".to_string(),
-//!             Visit::Leaf ( node ) => node.data.to_string() + &" ",
-//!     }});
-//!
-//!     assert_eq!( str_repr, "1( 2 3 ) 4( 5 6 ) " ); // no outmost parentheses
-//!     ```
-//! 
-//! 5. String representation 
+//! 4. String representation 
 //! 
 //!     The `Debug` and `Display` trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
 //!
@@ -176,7 +137,7 @@
 //!     {
 //!         let root: &Node<i32> = tree.borrow(); // you can also use tree.root()
 //!         let first_child : &Node<i32> = tree.children().next().unwrap();
-//!         let second_child: &Node<i32> = tree.children().nth(2).unwrap();
+//!         let second_child: &Node<i32> = tree.children().nth(1).unwrap();
 //!         let third_child : &Node<i32> = tree.children().last().unwrap();
 //!     }
 //!     let first_child: Tree<i32> = tree.pop_front().unwrap();
@@ -208,11 +169,13 @@
 //! 
 //!     do whatever you want to.
 //! 
-//! 5. Using `walk()` to iterate over `Node`s, you can:
-//! 
-//!     5.1 read the data associated with each descendant node in depth first manner, preorder or postorder at will.
-//! 
-//!     5.2 visit `Node`s irregularly, unlike the iterators mentioned above that are usually called intensively.
+//! ### Traversal
+//!
+//! Using `TreeWalk`/`ForestWalk` to traverse on `Tree`/`Forest`, you can:
+//!
+//! 1. read the data associated with each descendant node in depth first manner, preorder or postorder at will.
+//!
+//! 2. visit `Node`s irregularly, unlike the iterators mentioned above that are usually called intensively.
 //! 
 //! ### Resource management
 //!
@@ -266,4 +229,4 @@ mod rust {
 }
 
 pub mod sib;
-pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subtree,SubtreeIter,Walk,Visit};
+pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subtree,SubtreeIter,Visit,TreeWalk,ForestWalk};
