@@ -1,6 +1,6 @@
 //! Tree node implementation.
 
-use super::{Tree,Forest,Iter,IterMut,SubtreeIter};
+use super::{Tree,Forest,Iter,IterMut,OntoIter};
 use rust::*;
 
 pub struct Node<T> {
@@ -220,18 +220,18 @@ impl<T> Node<T> {
         }}
     }
 
-    /// Provide an iterator over the tree `Node`'s subtrees for insert/remove at any position.
-    /// See `Subtree`'s document for more.
-    #[inline] pub fn subtrees<'a>( &mut self ) -> SubtreeIter<'a,T> {
+    /// Provide an iterator over `Node`'s `Subnode`s for insert/remove at any position.
+    /// See `Subnode`'s document for more.
+    #[inline] pub fn onto_iter<'a>( &mut self ) -> OntoIter<'a,T> {
         unsafe {
             if self.is_leaf() {
-                SubtreeIter {
+                OntoIter {
                     next: null_mut(), curr: null_mut(), prev: null_mut(), tail: null_mut(),
                     sub : &mut self.sub as *mut *mut Node<T>,
                     mark: PhantomData,
                 }
             } else {
-                SubtreeIter {
+                OntoIter {
                     next : self.head(),
                     curr : null_mut(),
                     prev : self.sub,

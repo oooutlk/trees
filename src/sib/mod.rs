@@ -16,7 +16,7 @@ pub(crate) mod iter;
 pub use self::iter::{Iter,IterMut};
 
 pub(crate) mod subtree;
-pub use self::subtree::{Subtree,SubtreeIter}; 
+pub use self::subtree::{Subnode,OntoIter}; 
 
 pub(crate) mod heap;
 

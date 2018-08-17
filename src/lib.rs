@@ -159,7 +159,7 @@
 //! 
 //!     2.2 use `iter_mut()` to iterate over children's children, etc.
 //! 
-//! 3. Using `subtrees()` to iterate over `Subtree`s, you can:
+//! 3. Using `onto_iter()` to iterate over `Subnode`s, you can:
 //! 
 //!     3.1 `insert_before`, `insert_after()`, `depart()` node(s) at any position.
 //! 
@@ -229,4 +229,4 @@ mod rust {
 }
 
 pub mod sib;
-pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subtree,SubtreeIter,Visit,TreeWalk,ForestWalk};
+pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
