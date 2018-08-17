@@ -208,12 +208,12 @@ impl<T> Forest<T> {
     /// ```
     /// use trees::tr;
     /// let forest = -tr(1)-tr(2);
-    /// let mut iter = forest.children();
+    /// let mut iter = forest.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
     /// assert_eq!( iter.next(), Some( tr(2).root() ));
     /// assert_eq!( iter.next(), None );
     /// ```
-    #[inline] pub fn children<'a>( &self ) -> Iter<'a,T> {
+    #[inline] pub fn iter<'a>( &self ) -> Iter<'a,T> {
         if self.is_empty() {
             Iter::new( null(), null() )
         } else { unsafe {
@@ -228,10 +228,10 @@ impl<T> Forest<T> {
     /// ```
     /// use trees::tr;
     /// let mut forest = -tr(1)-tr(2);
-    /// for child in forest.children_mut() { child.data *= 10; }
+    /// for child in forest.iter_mut() { child.data *= 10; }
     /// assert_eq!( forest.to_string(), "( 10 20 )" );
     /// ```
-    #[inline] pub fn children_mut<'a>( &mut self ) -> IterMut<'a,T> {
+    #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {
         if self.is_empty() {
             IterMut::new( null_mut(), null_mut() )
         } else { unsafe {
@@ -266,7 +266,7 @@ impl<T> Forest<T> {
 impl<T:Clone> Clone for Forest<T> {
     fn clone( &self ) -> Self {
         let mut forest = Forest::<T>::new();
-        for child in self.children() {
+        for child in self.iter() {
             forest.push_back( child.to_owned() );
         }
         forest
@@ -323,7 +323,7 @@ impl<T:Debug> Debug for Forest<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::R
             write!( f, "()" )
         } else {
             write!( f, "( " )?;
-            for child in self.children() {
+            for child in self.iter() {
                 write!( f, "{:?} ", child )?;
             }
             write!( f, ")" )
@@ -337,7 +337,7 @@ impl<T:Display> Display for Forest<T> {
             write!( f, "()" )
         } else {
             write!( f, "( " )?;
-            for child in self.children() {
+            for child in self.iter() {
                 write!( f, "{} ", child )?;
             }
             write!( f, ")" )
@@ -346,27 +346,27 @@ impl<T:Display> Display for Forest<T> {
 }
 
 impl<T:PartialEq> PartialEq for Forest<T> {
-    fn eq( &self, other: &Self ) -> bool { self.children().eq( other.children() )}
-    fn ne( &self, other: &Self ) -> bool { self.children().ne( other.children() )}
+    fn eq( &self, other: &Self ) -> bool { self.iter().eq( other.iter() )}
+    fn ne( &self, other: &Self ) -> bool { self.iter().ne( other.iter() )}
 }
 
 impl<T:Eq> Eq for Forest<T> {}
 
 impl<T:PartialOrd> PartialOrd for Forest<T> {
     fn partial_cmp( &self, other: &Self ) -> Option<Ordering> {
-        self.children().partial_cmp( other.children() )
+        self.iter().partial_cmp( other.iter() )
     }
 }
 
 impl<T:Ord> Ord for Forest<T> {
     #[inline] fn cmp( &self, other: &Self ) -> Ordering {
-        self.children().cmp( other.children() )
+        self.iter().cmp( other.iter() )
     }
 }
 
 impl<T:Hash> Hash for Forest<T> {
     fn hash<H:Hasher>( &self, state: &mut H ) {
-        for child in self.children() {
+        for child in self.iter() {
             child.hash( state );
         }
     }

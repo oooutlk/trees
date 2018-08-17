@@ -189,12 +189,12 @@ impl<T> Node<T> {
     /// ```
     /// use trees::sib::tr;
     /// let tree = tr(0) /tr(1)/tr(2);
-    /// let mut iter = tree.children();
+    /// let mut iter = tree.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
     /// assert_eq!( iter.next(), Some( tr(2).root() ));
     /// assert_eq!( iter.next(), None );
     /// ```
-    #[inline] pub fn children<'a>( &self ) -> Iter<'a,T> {
+    #[inline] pub fn iter<'a>( &self ) -> Iter<'a,T> {
         if self.is_leaf() {
             Iter::new( null(), null() )
         } else { unsafe {
@@ -209,10 +209,10 @@ impl<T> Node<T> {
     /// ```
     /// use trees::sib::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// for child in tree.children_mut() { child.data *= 10; }
+    /// for child in tree.iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
     /// ```
-    #[inline] pub fn children_mut<'a>( &mut self ) -> IterMut<'a,T> {
+    #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {
         if self.is_leaf() {
             IterMut::new( null_mut(), null_mut() )
         } else { unsafe {
@@ -248,7 +248,7 @@ impl<T:Clone> ToOwned for Node<T> {
     type Owned = Tree<T>;
     fn to_owned( &self ) -> Self::Owned {
         let mut tree = Tree::new( self.data.clone() );
-        for child in self.children() {
+        for child in self.iter() {
             tree.push_back( child.to_owned() );
         }
         tree
@@ -270,7 +270,7 @@ impl<T:Debug> Debug for Node<T> {
         } else {
             self.data.fmt(f)?;
             write!( f, "( " )?;
-            for child in self.children() {
+            for child in self.iter() {
                 write!( f, "{:?} ", child )?;
             }
             write!( f, ")" )
@@ -285,7 +285,7 @@ impl<T:Display> Display for Node<T> {
         } else {
             self.data.fmt(f)?;
             write!( f, "( " )?;
-            for child in self.children() {
+            for child in self.iter() {
                 write!( f, "{} ", child )?;
             }
             write!( f, ")" )
@@ -294,8 +294,8 @@ impl<T:Display> Display for Node<T> {
 }
 
 impl<T:PartialEq> PartialEq for Node<T> {
-    fn eq( &self, other: &Self ) -> bool { self.data == other.data && self.children().eq( other.children() )}
-    fn ne( &self, other: &Self ) -> bool { self.data != other.data || self.children().ne( other.children() )}
+    fn eq( &self, other: &Self ) -> bool { self.data == other.data && self.iter().eq( other.iter() )}
+    fn ne( &self, other: &Self ) -> bool { self.data != other.data || self.iter().ne( other.iter() )}
 }
 
 impl<T:Eq> Eq for Node<T> {}
@@ -307,7 +307,7 @@ impl<T:PartialOrd> PartialOrd for Node<T> {
             Some( order ) => match order {
                 Less    => Some( Less ),
                 Greater => Some( Greater ),
-                Equal   => self.children().partial_cmp( other.children() ),
+                Equal   => self.iter().partial_cmp( other.iter() ),
             },
         }
     }
@@ -318,7 +318,7 @@ impl<T:Ord> Ord for Node<T> {
         match self.data.cmp( &other.data ) {
             Less    => Less,
             Greater => Greater,
-            Equal   => self.children().cmp( other.children() ),
+            Equal   => self.iter().cmp( other.iter() ),
         }
     }
 }
@@ -326,7 +326,7 @@ impl<T:Ord> Ord for Node<T> {
 impl<T:Hash> Hash for Node<T> {
     fn hash<H:Hasher>( &self, state: &mut H ) {
         self.data.hash( state );
-        for child in self.children() {
+        for child in self.iter() {
             child.hash( state );
         }
     }

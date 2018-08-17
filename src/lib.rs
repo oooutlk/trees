@@ -57,7 +57,7 @@
 //!     );
 //!     ```
 //!
-//! 3. `Tree` traversal, using `Node::children()` recursively
+//! 3. `Tree` traversal, using `Node::iter()` recursively
 //!
 //!     ```rust
 //!     use std::string::{String,ToString};
@@ -73,7 +73,7 @@
 //!         } else {
 //!             node.data.to_string()
 //!                 + &"( "
-//!                 + &node.children()
+//!                 + &node.iter()
 //!                     .fold( String::new(),
 //!                         |s,c| s + &tree_to_string(c) + &" " )
 //!                 + &")"
@@ -136,9 +136,9 @@
 //!     let mut tree: Tree<i32>  = tr(0) /tr(1)/tr(2)/tr(3);
 //!     {
 //!         let root: &Node<i32> = tree.borrow(); // you can also use tree.root()
-//!         let first_child : &Node<i32> = tree.children().next().unwrap();
-//!         let second_child: &Node<i32> = tree.children().nth(1).unwrap();
-//!         let third_child : &Node<i32> = tree.children().last().unwrap();
+//!         let first_child : &Node<i32> = tree.iter().next().unwrap();
+//!         let second_child: &Node<i32> = tree.iter().nth(1).unwrap();
+//!         let third_child : &Node<i32> = tree.iter().last().unwrap();
 //!     }
 //!     let first_child: Tree<i32> = tree.pop_front().unwrap();
 //!     ```
@@ -147,23 +147,23 @@
 //!
 //! The children nodes of a node, or a forest, is conceptually a forward list.
 //! 
-//! 1. Using `children()` to iterate over referenced child `Node`s, you can:
+//! 1. Using `iter()` to iterate over referenced child `Node`s, you can:
 //! 
 //!     1.1 read the data associated with each node.
 //! 
-//!     1.2 use `children()` to iterate over children's children, etc.
+//!     1.2 use `iter()` to iterate over children's children, etc.
 //! 
-//! 2. Using `children_mut()` to iterate over referenced child `Node`s, you can:
+//! 2. Using `iter_mut()` to iterate over referenced child `Node`s, you can:
 //! 
 //!     2.1 read/write the data associated with each node, or `prepend()`, `append`, `abandon()`, `push_front()`, `pop_front()`, `push_back()` child node(s) in constant time.
 //! 
-//!     2.2 use `children_mut()` to iterate over children's children, etc.
+//!     2.2 use `iter_mut()` to iterate over children's children, etc.
 //! 
 //! 3. Using `subtrees()` to iterate over `Subtree`s, you can:
 //! 
 //!     3.1 `insert_before`, `insert_after()`, `depart()` node(s) at any position.
 //! 
-//!     3.2 do whatever `children()` or `children_mut()` can do.
+//!     3.2 do whatever `iter()` or `iter_mut()` can do.
 //! 
 //! 4. Using `Forest::<T>::into_iter()` to iterate over `Tree`s, you can:
 //! 

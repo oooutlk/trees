@@ -3,11 +3,11 @@ use rust::*;
 
 /// An iterator over the sub `Node`s of a `Node` or `Forest`.
 ///
-/// This `struct` is created by [`Node::children`] and [`Forest::children`].
+/// This `struct` is created by [`Node::iter`] and [`Forest::iter`].
 /// See its document for more.
 ///
-/// [`Node::children`]: struct.Node.html#method.children
-/// [`Forest::children`]: struct.Forest.html#method.children
+/// [`Node::iter`]: struct.Node.html#method.iter
+/// [`Forest::iter`]: struct.Forest.html#method.iter
 pub struct Iter<'a, T:'a> {
     head : *const Node<T>,
     tail : *const Node<T>,
@@ -46,11 +46,11 @@ impl<'a, T> Clone for Iter<'a, T> {
 
 /// A mutable iterator over the sub `Node`s of a `Node` or `Forest`.
 ///
-/// This `struct` is created by [`Node::children_mut`] and [`Forest::children_mut`].
+/// This `struct` is created by [`Node::iter_mut`] and [`Forest::iter_mut`].
 ///  See its document for more.
 ///
-/// [`Node::children`]: struct.Node.html#method.children_mut
-/// [`Forest::children`]: struct.Forest.html#method.children_mut
+/// [`Node::iter`]: struct.Node.html#method.iter_mut
+/// [`Forest::iter`]: struct.Forest.html#method.iter_mut
 pub struct IterMut<'a, T:'a> {
     head : *mut Node<T>,
     tail : *mut Node<T>,
