@@ -228,5 +228,5 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{null,null_mut};
 }
 
-pub mod sib;
-pub use sib::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
+pub mod bottom_up;
+pub use bottom_up::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};

@@ -70,7 +70,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.push_front( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 2 1 )" );
@@ -92,7 +92,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.push_back( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
@@ -113,7 +113,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// assert_eq!( tree.pop_front(), Some( tr(1) ));
     /// assert_eq!( tree.to_string(), "0( 2 )" );
@@ -139,7 +139,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.prepend( -tr(2)-tr(3) );
     /// assert_eq!( tree.to_string(), "0( 2 3 1 )" );
@@ -162,7 +162,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1);
     /// tree.append( -tr(2)-tr(3) );
     /// assert_eq!( tree.to_string(), "0( 1 2 3 )" );
@@ -187,7 +187,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let tree = tr(0) /tr(1)/tr(2);
     /// let mut iter = tree.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
@@ -207,7 +207,7 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::sib::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// for child in tree.iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );

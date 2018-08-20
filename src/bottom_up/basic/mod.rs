@@ -1,24 +1,24 @@
 //! `Tree`/`Forest` implemented in last-child/next-sibling `Node`s, allocated on heap
 
-pub(crate) mod tree;
+pub mod tree;
 pub use self::tree::Tree; 
 
-pub(crate) mod forest;
+pub mod forest;
 pub use self::forest::Forest; 
 
-pub(crate) mod node;
+pub mod node;
 pub use self::node::Node;
 
-pub(crate) mod notation;
+pub mod notation;
 pub use self::notation::{tr,fr}; 
 
-pub(crate) mod iter;
+pub mod iter;
 pub use self::iter::{Iter,IterMut};
 
-pub(crate) mod onto_iter;
+pub mod onto_iter;
 pub use self::onto_iter::{Subnode,OntoIter}; 
 
-pub(crate) mod heap;
+pub mod heap;
 
 pub mod walk;
 pub use self::walk::{Visit,TreeWalk,ForestWalk};
