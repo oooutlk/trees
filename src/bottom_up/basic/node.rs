@@ -226,8 +226,8 @@ impl<T> Node<T> {
         unsafe {
             if self.is_leaf() {
                 OntoIter {
-                    next: null_mut(), curr: null_mut(), prev: null_mut(), tail: null_mut(),
-                    sub : &mut self.sub as *mut *mut Node<T>,
+                    next: null_mut(), curr: null_mut(), prev: null_mut(), sub: null_mut(),
+                    psub: &mut self.sub as *mut *mut Node<T>,
                     mark: PhantomData,
                 }
             } else {
@@ -235,8 +235,8 @@ impl<T> Node<T> {
                     next : self.head(),
                     curr : null_mut(),
                     prev : self.sub,
-                    tail : self.sub,
-                    sub : &mut self.sub as *mut *mut Node<T>,
+                    sub  : self.sub,
+                    psub : &mut self.sub as *mut *mut Node<T>,
                     mark : PhantomData,
                 }
             }

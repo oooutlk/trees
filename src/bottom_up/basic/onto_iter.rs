@@ -8,7 +8,7 @@ use rust::*;
 pub struct Subnode<'a, T:'a>{
     node : &'a mut Node<T>,
     prev : *mut Node<T>,
-    sub : *mut *mut Node<T>,
+    psub : *mut *mut Node<T>,
 }
 
 impl<'a, T:'a> Subnode<'a,T> {
@@ -46,8 +46,8 @@ impl<'a, T:'a> Subnode<'a,T> {
         unsafe {
             (*sib.root_mut()).sib = self.node.sib;
             self.node.sib = sib.root_mut();
-            if (*self.sub) == self.node as *mut Node<T> {
-                *self.sub = sib.root_mut();
+            if (*self.psub) == self.node as *mut Node<T> {
+                *self.psub = sib.root_mut();
             }
         }
         sib.clear();
@@ -66,8 +66,8 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn depart( self ) -> Tree<T> {
         unsafe {
-            if (*self.sub) == self.node as *mut Node<T> {
-                *self.sub = if self.node.has_no_sib() {
+            if (*self.psub) == self.node as *mut Node<T> {
+                *self.psub = if self.node.has_no_sib() {
                     null_mut()
                 } else {
                     self.prev
@@ -92,8 +92,8 @@ pub struct OntoIter<'a, T:'a>{
     pub(crate) next : *mut Node<T>,
     pub(crate) curr : *mut Node<T>,
     pub(crate) prev : *mut Node<T>,
-    pub(crate) tail : *mut Node<T>,
-    pub(crate) sub  : *mut *mut Node<T>,
+    pub(crate) sub  : *mut Node<T>,
+    pub(crate) psub : *mut *mut Node<T>,
     pub(crate) mark : PhantomData<&'a mut Node<T>>,
 }
 
@@ -101,9 +101,9 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
     type Item = Subnode<'a,T>;
 
     #[inline] fn next( &mut self ) -> Option<Subnode<'a,T>> {
-        if !self.tail.is_null() {
+        if !self.sub.is_null() {
             if !self.curr.is_null() {
-                if self.curr == self.tail || self.curr == self.next {
+                if self.curr == self.sub || self.curr == self.next {
                     return None;
                 }
                 unsafe { 
@@ -117,7 +117,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
                 let curr = self.next;
                 unsafe { 
                     self.next = (*curr).sib;
-                    return Some( Subnode{ node: &mut *curr, prev: self.prev, sub: self.sub });
+                    return Some( Subnode{ node: &mut *curr, prev: self.prev, psub: self.psub });
                 }
             }
         }
