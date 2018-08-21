@@ -265,7 +265,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
     /// let walk = TreeWalk::from( tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0)/tr(1)/tr(2)/tr(3) ).root() )));
@@ -278,7 +278,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
@@ -314,7 +314,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
@@ -331,7 +331,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
@@ -346,7 +346,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
@@ -363,7 +363,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.get(), Some( Visit::Begin( ( tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) ) ).root() )));
@@ -378,7 +378,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) / tr(1)/tr(2)/tr(3);
     /// let mut walk = TreeWalk::from( tree );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(1).root() )));
@@ -393,7 +393,7 @@ impl<T> TreeWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,TreeWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,TreeWalk};
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// let mut walk = TreeWalk::from( tree );
     /// for _ in 0..3 {
@@ -460,7 +460,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = -tr(1)-tr(2)-tr(3);
     /// let walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
@@ -473,7 +473,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -506,7 +506,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = -tr(1)-tr(2)-tr(3);
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.next(), Some( Visit::Leaf( tr(2).root() )));
@@ -521,7 +521,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -536,7 +536,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -553,7 +553,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Begin( (tr(1)/tr(2)/tr(3)).root() )));
@@ -568,7 +568,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = -tr(1)-tr(2)-tr(3);
     /// let mut walk = ForestWalk::from( forest );
     /// assert_eq!( walk.get(), Some( Visit::Leaf( tr(1).root() )));
@@ -583,7 +583,7 @@ impl<T> ForestWalk<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::{tr,Visit,ForestWalk};
+    /// use trees::bottom_up::basic::{tr,Visit,ForestWalk};
     /// let forest = - ( tr(1)/tr(2)/tr(3) ) - ( tr(4)/tr(5)/tr(6) );
     /// let mut walk = ForestWalk::from( forest );
     /// for _ in 0..3 {

@@ -22,7 +22,7 @@ impl<T> Tree<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::tr;
+    /// use trees::bottom_up::basic::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// assert_eq!( tree.abandon().to_string(), "( 1 2 )" );
     /// assert_eq!( tree, tr(0) );
