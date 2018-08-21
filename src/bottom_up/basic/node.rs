@@ -4,7 +4,7 @@ use super::{Tree,Forest,Iter,IterMut,OntoIter};
 use rust::*;
 
 pub struct Node<T> {
-    pub(crate) sib  : *mut Node<T>, // next sibling
+    pub(crate) next : *mut Node<T>, // next sibling
     pub(crate) sub  : *mut Node<T>, // last child
     pub        data : T,
 }
@@ -15,15 +15,15 @@ impl<T> Node<T> {
     #[inline] pub fn is_leaf( &self ) -> bool { self.sub.is_null() }
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
 
-    #[inline] pub(crate) fn set_sib( &mut self, sib: *mut Self ) { self.sib = sib; }
-    #[inline] pub(crate) fn reset_sib( &mut self ) { self.sib = self as *mut Self; }
-    #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.sib as *const Self == self as *const Self }
+    #[inline] pub(crate) fn set_sib( &mut self, sib: *mut Self ) { self.next = sib; }
+    #[inline] pub(crate) fn reset_sib( &mut self ) { self.next = self as *mut Self; }
+    #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.next as *const Self == self as *const Self }
 
-    #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { (*self.sub).sib }
+    #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { (*self.sub).next }
     #[inline] pub(crate) fn tail( &self ) -> *mut Self { self.sub }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).sib }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).next }
 
-    #[inline] pub(crate) unsafe fn adopt( &mut self, child: *mut Node<T> ) { (*self.tail()).sib = child; }
+    #[inline] pub(crate) unsafe fn adopt( &mut self, child: *mut Node<T> ) { (*self.tail()).next = child; }
 
     /// Returns the first child of the forest,
     /// or None if it is empty.
@@ -126,7 +126,7 @@ impl<T> Node<T> {
             if self.has_only_one_child() {
                 self.reset_child();
             } else {
-                (*self.tail()).sib = self.new_head();
+                (*self.tail()).next = self.new_head();
             }
             (*front).reset_sib();
             Some( Tree::from( front ))

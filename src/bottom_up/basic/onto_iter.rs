@@ -25,8 +25,8 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_before( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            sib.root_mut().sib = self.node as *mut Node<T>;
-            (*self.prev).sib = sib.root_mut();
+            sib.root_mut().next = self.node as *mut Node<T>;
+            (*self.prev).next = sib.root_mut();
         }
         sib.clear();
     }
@@ -44,8 +44,8 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*sib.root_mut()).sib = self.node.sib;
-            self.node.sib = sib.root_mut();
+            (*sib.root_mut()).next = self.node.next;
+            self.node.next = sib.root_mut();
             if (*self.psub) == self.node as *mut Node<T> {
                 *self.psub = sib.root_mut();
             }
@@ -73,7 +73,7 @@ impl<'a, T:'a> Subnode<'a,T> {
                     self.prev
                 }
             }
-            (*self.prev).sib = self.node.sib;
+            (*self.prev).next = self.node.next;
             self.node.reset_sib();
             Tree::from( self.node as *mut Node<T> )
         }
@@ -107,7 +107,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
                     return None;
                 }
                 unsafe { 
-                    if (*self.prev).sib != self.next { 
+                    if (*self.prev).next != self.next { 
                         self.prev = self.curr; // curr did not depart()-ed
                     }
                 }
@@ -116,7 +116,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
             if !self.next.is_null() {
                 let curr = self.next;
                 unsafe { 
-                    self.next = (*curr).sib;
+                    self.next = (*curr).next;
                     return Some( Subnode{ node: &mut *curr, prev: self.prev, psub: self.psub });
                 }
             }

@@ -33,18 +33,18 @@ impl<T> Forest<T> {
     #[inline] pub(crate) fn clear( &mut self ) { self.sub = null_mut(); }
 
     #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) {
-        (*self.tail()).sib = sib;
+        (*self.tail()).next = sib;
     }
 
-    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.sub).sib }
+    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.sub).next }
     #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.sub }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).sib }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).next }
 
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
 
     #[inline] pub(crate) fn adopt( &mut self, child: *mut Node<T> ) {
         unsafe {
-            (*self.tail()).sib = child;
+            (*self.tail()).next = child;
         }
     }
 
@@ -147,7 +147,7 @@ impl<T> Forest<T> {
             if self.has_only_one_child() {
                 self.clear();
             } else {
-                (*self.tail()).sib = self.new_head();
+                (*self.tail()).next = self.new_head();
             }
             (*front).reset_sib();
             Some( Tree::from( front ))
