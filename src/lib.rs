@@ -207,7 +207,7 @@ mod rust {
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt;
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{Debug,Display,Formatter};
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::{PhantomData};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Deref,DerefMut,Div,Neg,Sub};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{null,null_mut};
@@ -222,7 +222,7 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::fmt;
     #[cfg(feature="no_std")] pub(crate) use core::fmt::{Debug,Display,Formatter};
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
-    #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator};
+    #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(feature="no_std")] pub(crate) use core::marker::{PhantomData};
     #[cfg(feature="no_std")] pub(crate) use core::ops::{Deref,DerefMut,Div,Neg,Sub};
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{null,null_mut};
