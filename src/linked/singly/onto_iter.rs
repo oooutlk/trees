@@ -18,7 +18,7 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::basic::tr;
+    /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// for mut sub in tree.onto_iter() { sub.insert_before( tr(3) ); }
     /// assert_eq!( tree.to_string(), "0( 3 1 3 2 )" );
@@ -37,7 +37,7 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::basic::tr;
+    /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// for mut sub in tree.onto_iter() { sub.insert_after( tr(3) ); }
     /// assert_eq!( tree.to_string(), "0( 1 3 2 3 )" );
@@ -57,7 +57,7 @@ impl<'a, T:'a> Subnode<'a,T> {
     ///
     /// # Examples
     /// ```
-    /// use trees::bottom_up::basic::{tr,fr};
+    /// use trees::linked::singly::{tr,fr};
     ///
     /// let mut forest = -tr(1)-tr(2)-tr(3);
     /// //for sub in forest.onto_iter() { sub.depart(); }

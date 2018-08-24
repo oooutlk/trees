@@ -12,13 +12,13 @@ pub struct Forest<T> {
 
 impl<T> Forest<T> {
     /// Makes an empty `Forest`.
-    #[inline] pub fn new() -> Forest<T> { Self::from( null_mut() )}
+    #[inline] pub fn new() -> Forest<T> { Self::from( null_mut(), Size{ degree: 0, node_cnt: 0, })}
 
     /// Returns the number of subtrees in `Forest`.
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let forest = tr(0) - tr(1)/tr(2)/tr(3) - tr(4)/tr(5)/tr(6);
     /// assert_eq!( forest.degree(), 3 );
     /// ```
@@ -28,7 +28,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let forest = tr(0) - tr(1)/tr(2)/tr(3) - tr(4)/tr(5)/tr(6);
     /// assert_eq!( forest.node_count(), 7 );
     /// ```
@@ -41,7 +41,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::{tr,fr};
+    /// use trees::linked::fully::{tr,fr};
     /// let mut forest = fr();
     /// assert!( forest.is_empty() );
     /// forest.push_back( tr(1) ); 
@@ -52,7 +52,7 @@ impl<T> Forest<T> {
     #[inline] pub(crate) fn set_parent( &mut self, parent: *mut Node<T> ) { for child in self.iter_mut() { child.parent = parent; }}
 
     #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.child = node; }
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ child: node, size: Size{ degree: 0, node_cnt: 0 }, mark: PhantomData } }
+    #[inline] pub(crate) fn from( node: *mut Node<T>, size: Size ) -> Self { Forest{ child: node, size, mark: PhantomData }}
     #[inline] pub(crate) fn clear( &mut self ) { self.child = null_mut(); }
 
     #[inline] pub(crate) unsafe fn set_sib( &mut self, prev: *mut Node<T>, next: *mut Node<T> ) {
@@ -119,7 +119,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest = -tr(1)-tr(2);
     /// forest.push_front( tr(3) );
     /// assert_eq!( forest.to_string(), "( 3 1 2 )" );
@@ -141,7 +141,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest = -tr(1)-tr(2);
     /// forest.push_back( tr(3) );
     /// assert_eq!( forest.to_string(), "( 1 2 3 )" );
@@ -164,7 +164,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest = -tr(1)-tr(2);
     /// assert_eq!( forest.pop_front(), Some( tr(1) ));
     /// assert_eq!( forest.to_string(), "( 2 )" );
@@ -193,7 +193,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest = -tr(1)-tr(2);
     /// assert_eq!( forest.pop_back(), Some( tr(2) ));
     /// assert_eq!( forest.to_string(), "( 1 )" );
@@ -224,7 +224,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest1 = -tr(0)-tr(1);
     /// let mut forest2 = -tr(2)-tr(3);
     /// forest1.prepend( forest2 );
@@ -249,7 +249,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest1 = -tr(0)-tr(1);
     /// let mut forest2 = -tr(2)-tr(3);
     /// forest1.append( forest2 );
@@ -273,7 +273,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let forest = -tr(1)-tr(2);
     /// let mut iter = forest.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
@@ -293,7 +293,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bottom_up::full::tr;
+    /// use trees::linked::fully::tr;
     /// let mut forest = -tr(1)-tr(2);
     /// for child in forest.iter_mut() { child.data *= 10; }
     /// assert_eq!( forest.to_string(), "( 10 20 )" );
