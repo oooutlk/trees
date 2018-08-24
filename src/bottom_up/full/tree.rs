@@ -28,7 +28,7 @@ impl<T> Tree<T> {
     /// assert_eq!( tree, tr(0) );
     /// ```
     #[inline] pub fn abandon( &mut self ) -> Forest<T> {
-        let forest = Forest::<T>::from( self.sub );
+        let forest = Forest::<T>::from( self.child );
         self.reset_child();
         self.size.degree = 0;
         self.size.node_cnt = 1;

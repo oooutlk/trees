@@ -7,7 +7,7 @@ use rust::*;
 /// Any `Node` that is the root of some `Tree` is impossible to be `Subnode`.
 pub struct Subnode<'a, T:'a>{
     node  : &'a mut Node<T>,
-    psub  : *mut *mut Node<T>, // point to parent( tree or forest )'s sub pointer
+    ptail : *mut *mut Node<T>, // point to parent( tree or forest )'s sub pointer
     psize : *mut Size,         // point to parent( tree or forest )'s size
 }
 
@@ -28,7 +28,7 @@ impl<'a, T:'a> Subnode<'a,T> {
             (*self.node.prev).next = sib.root;
             sib.root_mut().set_sib( self.node.prev, self.node as *mut Node<T> );
             self.node.prev = sib.root;
-            sib.set_parent( self.node.sup );
+            sib.set_parent( self.node.parent );
             (*self.psize) += Size{ degree: 1, node_cnt: sib.root().size.node_cnt };
         }
         sib.clear();
@@ -50,7 +50,7 @@ impl<'a, T:'a> Subnode<'a,T> {
             (*self.node.next).prev = sib.root;
             sib.root_mut().set_sib( self.node as *mut Node<T>, self.node.next );
             self.node.next = sib.root;
-            let parent = self.node.sup;
+            let parent = self.node.parent;
             sib.set_parent( parent );
             (*self.psize) += Size{ degree: 1, node_cnt: sib.root().size.node_cnt };
             if (*parent).tail() == self.node as *mut Node<T> {
@@ -73,8 +73,8 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn depart( self ) -> Tree<T> {
         unsafe {
-            if (*self.psub) == self.node as *mut Node<T> {
-                *self.psub = if self.node.has_no_sib() {
+            if (*self.ptail) == self.node as *mut Node<T> {
+                *self.ptail = if self.node.has_no_sib() {
                     null_mut()
                 } else {
                     self.node.prev
@@ -101,8 +101,8 @@ pub struct OntoIter<'a, T:'a>{
     pub(crate) next  : *mut Node<T>,
     pub(crate) curr  : *mut Node<T>,
     pub(crate) prev  : *mut Node<T>,
-    pub(crate) sub   : *mut Node<T>,
-    pub(crate) psub  : *mut *mut Node<T>, // point to parent( tree or forest )'s sub pointer
+    pub(crate) child   : *mut Node<T>,
+    pub(crate) ptail : *mut *mut Node<T>, // point to parent( tree or forest )'s child pointer
     pub(crate) psize : *mut Size,         // point to parent( tree or forest )'s size
     pub(crate) mark  : PhantomData<&'a mut Node<T>>,
 }
@@ -111,9 +111,9 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
     type Item = Subnode<'a,T>;
 
     #[inline] fn next( &mut self ) -> Option<Subnode<'a,T>> {
-        if !self.sub.is_null() {
+        if !self.child.is_null() {
             if !self.curr.is_null() {
-                if self.curr == self.sub || self.curr == self.next {
+                if self.curr == self.child || self.curr == self.next {
                     return None;
                 }
                 unsafe { 
@@ -127,7 +127,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
                 let curr = self.next;
                 unsafe { 
                     self.next = (*curr).next;
-                    return Some( Subnode{ node: &mut *curr, psub: self.psub, psize: self.psize });
+                    return Some( Subnode{ node: &mut *curr, ptail: self.ptail, psize: self.psize });
                 }
             }
         }

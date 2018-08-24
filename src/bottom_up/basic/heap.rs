@@ -8,9 +8,9 @@ pub type Phantom<T> = PhantomData<Box<Node<T>>>;
 
 pub(crate) fn make_node<T>( data: T ) -> *mut Node<T> {
     let mut node = Box::new( Node {
-        next : null_mut(),
-        sub  : null_mut(),
-        data : data,
+        next  : null_mut(),
+        child : null_mut(),
+        data  : data,
     });
     node.reset_sib();
     Box::into_raw( node )

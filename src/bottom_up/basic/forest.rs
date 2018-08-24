@@ -5,8 +5,8 @@ use rust::*;
 
 /// A nullable forest
 pub struct Forest<T> {
-    sub : *mut Node<T>,
-    mark : super::heap::Phantom<T>,
+    child : *mut Node<T>,
+    mark  : super::heap::Phantom<T>,
 }
 
 impl<T> Forest<T> {
@@ -26,18 +26,18 @@ impl<T> Forest<T> {
     /// forest.push_back( tr(1) ); 
     /// assert!( !forest.is_empty() );
     /// ```
-    #[inline] pub fn is_empty( &self ) -> bool { self.sub.is_null() }
+    #[inline] pub fn is_empty( &self ) -> bool { self.child.is_null() }
 
-    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.sub = node; }
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ sub: node, mark: PhantomData } }
-    #[inline] pub(crate) fn clear( &mut self ) { self.sub = null_mut(); }
+    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.child = node; }
+    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ child: node, mark: PhantomData } }
+    #[inline] pub(crate) fn clear( &mut self ) { self.child = null_mut(); }
 
     #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) {
         (*self.tail()).next = sib;
     }
 
-    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.sub).next }
-    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.sub }
+    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.child).next }
+    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.child }
     #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).next }
 
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
@@ -245,18 +245,18 @@ impl<T> Forest<T> {
         unsafe {
             if self.is_empty() {
                 OntoIter {
-                    next: null_mut(), curr: null_mut(), prev: null_mut(), sub: null_mut(),
-                    psub: &mut self.sub as *mut *mut Node<T>,
+                    next: null_mut(), curr: null_mut(), prev: null_mut(), child: null_mut(),
+                    ptail: &mut self.child as *mut *mut Node<T>,
                     mark: PhantomData,
                 }
             } else {
                 OntoIter {
-                    next : self.head(),
-                    curr : null_mut(),
-                    prev : self.sub,
-                    sub  : self.sub,
-                    psub : &mut self.sub as *mut *mut Node<T>,
-                    mark : PhantomData,
+                    next  : self.head(),
+                    curr  : null_mut(),
+                    prev  : self.child,
+                    child : self.child,
+                    ptail : &mut self.child as *mut *mut Node<T>,
+                    mark  : PhantomData,
                 }
             }
         }

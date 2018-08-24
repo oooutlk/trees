@@ -142,5 +142,4 @@ mod tests {
         forest.extend( tr(3)-tr(4) );
         assert_eq!( forest, tr(1)-tr(2)-tr(3)-tr(4) );
     }
-
 }
