@@ -1,12 +1,12 @@
 //! `Forest` composed of disjoint `Tree`s.
 
-use super::{Node,Tree,Iter,IterMut,OntoIter};
+use super::{Node,Link,Tree,Iter,IterMut,OntoIter};
 use rust::*;
 
 /// A nullable forest
 pub struct Forest<T> {
-    child : *mut Node<T>,
-    mark  : super::heap::Phantom<T>,
+    link : Link,
+    mark : super::heap::Phantom<T>,
 }
 
 impl<T> Forest<T> {
@@ -26,27 +26,21 @@ impl<T> Forest<T> {
     /// forest.push_back( tr(1) ); 
     /// assert!( !forest.is_empty() );
     /// ```
-    #[inline] pub fn is_empty( &self ) -> bool { self.child.is_null() }
+    #[inline] pub fn is_empty( &self ) -> bool { self.link.has_no_child() }
 
-    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.child = node; }
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ child: node, mark: PhantomData } }
-    #[inline] pub(crate) fn clear( &mut self ) { self.child = null_mut(); }
+    #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.link.set_child( node as *mut Link ); }
+    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ link: Link{ next: null_mut(), child: node as *mut Link }, mark: PhantomData }}
+    #[inline] pub(crate) fn clear( &mut self ) { self.link.reset_child(); }
 
-    #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) {
-        (*self.tail()).next = sib;
-    }
+    #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) { (*self.tail()).set_sib( sib ); }
 
-    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { (*self.child).next }
-    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.child }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).next }
+    #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { self.link.head() as *mut Node<T> }
+    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> {  self.link.tail() as *mut Node<T> }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { self.link.new_head() as *mut Node<T> }
 
-    #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
+    #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.link.has_only_one_child() }
 
-    #[inline] pub(crate) fn adopt( &mut self, child: *mut Node<T> ) {
-        unsafe {
-            (*self.tail()).next = child;
-        }
-    }
+    #[inline] pub(crate) fn adopt( &mut self, child: *mut Node<T> ) { unsafe { self.link.adopt( child as *mut Link )}}
 
     /// Returns the first child of the forest,
     /// or None if it is empty.
@@ -147,7 +141,7 @@ impl<T> Forest<T> {
             if self.has_only_one_child() {
                 self.clear();
             } else {
-                (*self.tail()).next = self.new_head();
+                (*self.tail()).set_sib( self.new_head() );
             }
             (*front).reset_sib();
             Some( Tree::from( front ))
@@ -246,16 +240,18 @@ impl<T> Forest<T> {
             if self.is_empty() {
                 OntoIter {
                     next: null_mut(), curr: null_mut(), prev: null_mut(), child: null_mut(),
-                    ptail: &mut self.child as *mut *mut Node<T>,
+                    //ptail: &mut self.child as *mut *mut Node<T>,
+                    parent: &mut self.link as *mut Link,
                     mark: PhantomData,
                 }
             } else {
                 OntoIter {
                     next  : self.head(),
                     curr  : null_mut(),
-                    prev  : self.child,
-                    child : self.child,
-                    ptail : &mut self.child as *mut *mut Node<T>,
+                    prev  : self.tail(),
+                    child : self.tail(),
+                    //ptail : &mut self.child as *mut *mut Node<T>,
+                    parent: &mut self.link as *mut Link,
                     mark  : PhantomData,
                 }
             }

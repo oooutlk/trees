@@ -1,14 +1,15 @@
 //! A full functional mutable iterator implementation with the extra ability of inserting/removing `Node` at any position than `IterMut`.
 
-use super::{Node,Tree};
+use super::{Node,Link,Tree};
 use rust::*;
 
 /// Wrapper of `Node` for allowing modification of parent or sib links.
 /// Any `Node` that is the root of some `Tree` is impossible to be `Subnode`.
 pub struct Subnode<'a, T:'a>{
-    node  : &'a mut Node<T>,
-    prev  : *mut Node<T>,
-    ptail : *mut *mut Node<T>,
+    node   : &'a mut Node<T>,
+    prev   : *mut Node<T>,
+    parent : *mut Link,
+    //ptail : *mut *mut Node<T>,
 }
 
 impl<'a, T:'a> Subnode<'a,T> {
@@ -25,8 +26,8 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_before( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            sib.root_mut().next = self.node as *mut Node<T>;
-            (*self.prev).next = sib.root_mut();
+            sib.root_mut().set_sib( self.node );
+            (*self.prev).set_sib( sib.root_mut() );
         }
         sib.clear();
     }
@@ -44,10 +45,10 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*sib.root_mut()).next = self.node.next;
-            self.node.next = sib.root_mut();
-            if (*self.ptail) == self.node as *mut Node<T> {
-                *self.ptail = sib.root_mut();
+            (*sib.root_mut()).set_sib( self.node.next() );
+            self.node.set_sib( sib.root_mut() );
+            if (*self.parent).tail() == self.node as *mut Node<T> as *mut Link {
+                (*self.parent).set_child( &mut sib.root_mut().link );
             }
         }
         sib.clear();
@@ -66,14 +67,10 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn depart( self ) -> Tree<T> {
         unsafe {
-            if (*self.ptail) == self.node as *mut Node<T> {
-                *self.ptail = if self.node.has_no_sib() {
-                    null_mut()
-                } else {
-                    self.prev
-                }
+            if (*self.parent).tail() == self.node as *mut Node<T> as *mut Link {
+                (*self.parent).set_child( ( if self.node.has_no_sib() { null_mut() } else { self.prev } ) as *mut Link );
             }
-            (*self.prev).next = self.node.next;
+            (*self.prev).set_sib( self.node.next() );
             self.node.reset_sib();
             Tree::from( self.node as *mut Node<T> )
         }
@@ -89,12 +86,13 @@ impl<'a, T:'a> DerefMut for Subnode<'a,T> { fn deref_mut( &mut self ) -> &mut No
 
 /// Mutable iterator allowing modification of parent or sib links.
 pub struct OntoIter<'a, T:'a>{
-    pub(crate) next  : *mut Node<T>,
-    pub(crate) curr  : *mut Node<T>,
-    pub(crate) prev  : *mut Node<T>,
-    pub(crate) child : *mut Node<T>,
-    pub(crate) ptail : *mut *mut Node<T>,
-    pub(crate) mark  : PhantomData<&'a mut Node<T>>,
+    pub(crate) next   : *mut Node<T>,
+    pub(crate) curr   : *mut Node<T>,
+    pub(crate) prev   : *mut Node<T>,
+    pub(crate) child  : *mut Node<T>,
+    //pub(crate) ptail : *mut *mut Node<T>,
+    pub(crate) parent : *mut Link,
+    pub(crate) mark   : PhantomData<&'a mut Node<T>>,
 }
 
 impl<'a, T:'a> Iterator for OntoIter<'a,T> {
@@ -107,7 +105,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
                     return None;
                 }
                 unsafe { 
-                    if (*self.prev).next != self.next { 
+                    if (*self.prev).next() != self.next { 
                         self.prev = self.curr; // curr did not depart()-ed
                     }
                 }
@@ -116,8 +114,8 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
             if !self.next.is_null() {
                 let curr = self.next;
                 unsafe { 
-                    self.next = (*curr).next;
-                    return Some( Subnode{ node: &mut *curr, prev: self.prev, ptail: self.ptail });
+                    self.next = (*curr).next();
+                    return Some( Subnode{ node: &mut *curr, prev: self.prev, parent: self.parent });
                 }
             }
         }

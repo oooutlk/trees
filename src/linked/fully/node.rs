@@ -266,7 +266,6 @@ impl<T> Node<T> {
             forest.set_parent( self as *mut Node<T> );
             if self.is_leaf() {
                 self.set_child( forest.tail() );
-                forest.clear();
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.tail(), self.head() );
