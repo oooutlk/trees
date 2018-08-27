@@ -7,7 +7,7 @@ use rust::*;
 /// A non-nullable tree
 pub struct Tree<T> {
     pub(crate) root : *mut Node<T>,
-    mark            : heap::Phantom<T>,
+               mark : heap::Phantom<T>,
 }
 
 impl<T> Tree<T> {
@@ -28,10 +28,10 @@ impl<T> Tree<T> {
     /// assert_eq!( tree, tr(0) );
     /// ```
     #[inline] pub fn abandon( &mut self ) -> Forest<T> {
-        let forest = Forest::<T>::from( self.child, self.size );
+        let forest = Forest::<T>::from( self.tail(), self.root().link.size );
         self.reset_child();
-        self.size.degree = 0;
-        self.size.node_cnt = 1;
+        self.link.size.degree = 0;
+        self.link.size.node_cnt = 1;
         forest
     }
 

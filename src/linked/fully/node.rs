@@ -3,62 +3,94 @@
 use super::{Tree,Forest,Iter,IterMut,OntoIter,Size};
 use rust::*;
 
-pub struct Node<T> {
-    pub(crate) next   : *mut Node<T>, // next sibling
-    pub(crate) child  : *mut Node<T>, // last child
-    pub(crate) prev   : *mut Node<T>, // previous sibling
-    pub(crate) parent : *mut Node<T>,
+pub(crate) struct Link {
+    pub(crate) next   : *mut Link, // next sibling
+    pub(crate) child  : *mut Link, // last child
+    pub(crate) prev   : *mut Link, // previous sibling
+    pub(crate) parent : *mut Link,
     pub(crate) size   : Size,
-    pub        data   : T,
 }
 
-impl<T> Node<T> {
-    #[inline] pub(crate) fn set_parent( &mut self, parent: *mut Node<T> ) { self.parent = parent; }
+#[repr(C)]
+pub struct Node<T> {
+    pub(crate) link : Link,
+    pub        data : T,
+}
+
+impl Link {
+    #[inline] pub(crate) fn set_parent( &mut self, parent: *mut Self ) { self.parent = parent; }
     #[inline] pub(crate) fn reset_parent( &mut self ) { self.parent = null_mut(); }
 
-    #[inline] pub(crate) fn set_child( &mut self, child: *mut Node<T> ) { self.child = child; }
+    #[inline] pub(crate) fn set_child( &mut self, child: *mut Self ) { self.child = child; }
     #[inline] pub(crate) fn reset_child( &mut self ) { self.set_child( null_mut() ); }
-    #[inline] pub fn is_leaf( &self ) -> bool { self.child.is_null() }
+    #[inline] pub(crate) fn has_no_child( &self ) -> bool { self.child.is_null() }
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
 
-    #[inline] pub(crate) fn set_sib( &mut self, prev: *mut Self, next: *mut Self ) { self.prev  = prev; self.next = next; }
+    #[inline] pub(crate) fn set_sib( &mut self, prev: *mut Self, next: *mut Self ) { self.prev = prev; self.next = next; }
     #[inline] pub(crate) fn reset_sib( &mut self ) { self.prev  = self as *mut Self; self.next = self as *mut Self; }
     #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.prev as *const Self == self as *const Self && self.next as *const Self == self as *const Self }
 
     #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { (*self.child).next }
 
     #[inline] pub(crate) fn tail( &self ) -> *mut Self { self.child }
-    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { (*self.head()).next }
-    #[inline] pub(crate) unsafe fn new_tail( &self ) -> *mut Node<T> { (*self.tail()).prev  }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Self { (*self.head()).next }
+    #[inline] pub(crate) unsafe fn new_tail( &self ) -> *mut Self { (*self.tail()).prev  }
 
-    #[inline] pub(crate) unsafe fn adopt( &mut self, begin: *mut Node<T>, end: *mut Node<T> ) { (*self.head()).prev  = begin; (*self.tail()).next = end; }
+    #[inline] pub(crate) unsafe fn adopt( &mut self, begin: *mut Self, end: *mut Self ) { (*self.head()).prev  = begin; (*self.tail()).next = end; }
 
     #[inline] pub(crate) fn inc_sizes( &mut self, degree: u32, node_cnt: u32 ) {
         self.size.degree += degree;
         self.size.node_cnt += node_cnt;
-        let mut pnode = self.parent;
-        while !pnode.is_null() {
+        let mut link = self.parent;
+        while !link.is_null() {
             unsafe {
-                (*pnode).size.node_cnt += node_cnt;
-                pnode = (*pnode).parent;
+                (*link).size.node_cnt += node_cnt;
+                link = (*link).parent;
             }
         }
     }
 
     #[inline] pub(crate) fn dec_sizes( &mut self, degree: u32, node_cnt: u32 ) {
-        let mut pnode = self.parent;
+        let mut link = self.parent;
         unsafe {
-            if !pnode.is_null() {
-                (*pnode).size.degree -= degree;
+            if !link.is_null() {
+                (*link).size.degree -= degree;
             }
         }
-        while !pnode.is_null() {
+        while !link.is_null() {
             unsafe {
-                (*pnode).size.node_cnt -= node_cnt;
-                pnode = (*pnode).parent;
+                (*link).size.node_cnt -= node_cnt;
+                link = (*link).parent;
             }
         }
     }
+}
+
+impl<T> Node<T> {
+    #[inline] pub(crate) fn set_parent( &mut self, parent: *mut Node<T> ) { self.link.set_parent( parent as *mut Link ); }
+    #[inline] pub(crate) fn reset_parent( &mut self ) { self.link.reset_parent(); }
+
+    #[inline] pub(crate) fn set_child( &mut self, child: *mut Node<T> ) { self.link.set_child( child as *mut Link ); }
+    #[inline] pub(crate) fn reset_child( &mut self ) { self.link.reset_child(); }
+    #[inline] pub fn is_leaf( &self ) -> bool { self.link.has_no_child() }
+    #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.head() == self.tail() }
+
+    #[inline] pub(crate) fn set_sib( &mut self, prev: *mut Self, next: *mut Self ) { self.link.set_sib( prev as *mut Link, next as *mut Link ); }
+    #[inline] pub(crate) fn reset_sib( &mut self ) { self.link.reset_sib(); }
+    #[inline] pub(crate) fn has_no_sib( &self ) -> bool { self.link.has_no_sib() }
+
+    #[inline] pub(crate) unsafe fn head( &self ) -> *mut Self { self.link.head() as *mut Self }
+
+    #[inline] pub(crate) fn tail( &self ) -> *mut Self { self.link.tail() as *mut Self }
+    #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { self.link.new_head() as *mut Self }
+    #[inline] pub(crate) unsafe fn new_tail( &self ) -> *mut Node<T> { self.link.new_tail() as *mut Self }
+
+    #[inline] pub(crate) unsafe fn adopt( &mut self, begin: *mut Node<T>, end: *mut Node<T> ) { self.link.adopt( begin as *mut Link, end as *mut Link )}
+
+    #[inline] pub(crate) fn next( &self ) -> *mut Self { self.link.next as *mut Self }
+
+    #[inline] pub(crate) fn inc_sizes( &mut self, degree: u32, node_cnt: u32 ) { self.link.inc_sizes( degree, node_cnt ); }
+    #[inline] pub(crate) fn dec_sizes( &mut self, degree: u32, node_cnt: u32 ) { self.link.dec_sizes( degree, node_cnt ); }
 
     /// Returns the number of subtrees in `Forest`.
     /// # Examples
@@ -68,7 +100,7 @@ impl<T> Node<T> {
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// assert_eq!( tree.degree(), 2 );
     /// ```
-    #[inline] pub fn degree( &self ) -> usize { self.size.degree as usize }
+    #[inline] pub fn degree( &self ) -> usize { self.link.size.degree as usize }
 
     /// Returns the number of all subnodes in `Forest`.
     /// # Examples
@@ -78,7 +110,7 @@ impl<T> Node<T> {
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
     /// assert_eq!( tree.node_count(), 7 );
     /// ```
-    #[inline] pub fn node_count( &self ) -> usize { self.size.node_cnt as usize }
+    #[inline] pub fn node_count( &self ) -> usize { self.link.size.node_cnt as usize }
 
     /// Returns the first child of the forest,
     /// or None if it is empty.
@@ -140,7 +172,7 @@ impl<T> Node<T> {
                 self.adopt( tree.root, tree.root );
             }
         }
-        self.inc_sizes( 1, tree.root().size.node_cnt );
+        self.inc_sizes( 1, tree.root().link.size.node_cnt );
         tree.clear();
     }
 
@@ -163,7 +195,7 @@ impl<T> Node<T> {
             }
             self.set_child( tree.root );
         }
-        self.inc_sizes( 1, tree.root().size.node_cnt );
+        self.inc_sizes( 1, tree.root().link.size.node_cnt );
         tree.clear();
     }
 
@@ -185,12 +217,12 @@ impl<T> Node<T> {
             if self.has_only_one_child() {
                 self.reset_child();
             } else {
-                (*self.new_head()).prev = self.tail();
-                (*self.tail()).next = self.new_head();
+                (*self.new_head()).link.prev = self.tail() as *mut Link;
+                (*self.tail()).link.next = self.new_head() as *mut Link;
             }
             (*front).reset_parent();
             (*front).reset_sib();
-            self.dec_sizes( 1, (*front).size.node_cnt );
+            self.dec_sizes( 1, (*front).link.size.node_cnt );
             Some( Tree::from( front ))
         }}
 
@@ -215,13 +247,13 @@ impl<T> Node<T> {
                 self.reset_child();
             } else {
                 let new_tail = self.new_tail();
-                (*new_tail).next = self.head();
-                (*self.head()).prev = new_tail;
+                (*new_tail).link.next = self.head() as *mut Link;
+                (*self.head()).link.prev = new_tail as *mut Link;
                 self.set_child( new_tail );
             }
             (*back).reset_parent();
             (*back).reset_sib();
-            self.dec_sizes( 1, (*back).size.node_cnt );
+            self.dec_sizes( 1, (*back).link.size.node_cnt );
             Some( Tree::from( back ))
         }}
     }
@@ -238,7 +270,7 @@ impl<T> Node<T> {
     /// ```
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
-            forest.set_parent( self as *mut Node<T> );
+            forest.set_parent( self as *mut Node<T> as *mut Link );
             if self.is_leaf() {
                 self.set_child( forest.tail() );
             } else { unsafe {
@@ -246,7 +278,7 @@ impl<T> Node<T> {
                 forest.set_sib( self.tail(), self.head() );
                 self.adopt( forest.tail(), forest_head );
             }}
-            self.inc_sizes( forest.size.degree, forest.size.node_cnt );
+            self.inc_sizes( forest.link.size.degree, forest.link.size.node_cnt );
             forest.clear();
         }
     }
@@ -263,7 +295,7 @@ impl<T> Node<T> {
     /// ```
     #[inline] pub fn append( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
-            forest.set_parent( self as *mut Node<T> );
+            forest.set_parent( self as *mut Node<T> as *mut Link );
             if self.is_leaf() {
                 self.set_child( forest.tail() );
             } else { unsafe {
@@ -272,7 +304,7 @@ impl<T> Node<T> {
                 self.adopt( forest.tail(), forest_head );
                 self.set_child( forest.tail() );
             }}
-            self.inc_sizes( forest.size.degree, forest.size.node_cnt );
+            self.inc_sizes( forest.link.size.degree, forest.link.size.node_cnt );
             forest.clear();
         }
     }
@@ -293,7 +325,7 @@ impl<T> Node<T> {
         if self.is_leaf() {
             Iter::new( null(), null(), 0 )
         } else { unsafe {
-            Iter::new( self.head(), self.tail(), self.size.degree as usize )
+            Iter::new( self.head(), self.tail(), self.link.size.degree as usize )
         }}
     }
 
@@ -311,7 +343,7 @@ impl<T> Node<T> {
         if self.is_leaf() {
             IterMut::new( null_mut(), null_mut(), 0 )
         } else { unsafe {
-            IterMut::new( self.head(), self.tail(), self.size.degree as usize )
+            IterMut::new( self.head(), self.tail(), self.link.size.degree as usize )
         }}
     }
 
@@ -322,18 +354,17 @@ impl<T> Node<T> {
             if self.is_leaf() {
                 OntoIter {
                     next: null_mut(), curr: null_mut(), prev: null_mut(), child: null_mut(),
-                    ptail: &mut self.child as *mut *mut Node<T>, psize: &mut self.size as *mut Size,
+                    parent : self as *mut Node<T> as *mut Link,
                     mark: PhantomData,
                 }
             } else {
                 OntoIter {
-                    next  : self.head(),
-                    curr  : null_mut(),
-                    prev  : self.child,
-                    child : self.child,
-                    ptail : &mut self.child as *mut *mut Node<T>,
-                    psize : &mut self.size as *mut Size,
-                    mark  : PhantomData,
+                    next   : self.head(),
+                    curr   : null_mut(),
+                    prev   : self.link.child as *mut Node<T>,
+                    child  : self.link.child as *mut Node<T>,
+                    parent : self as *mut Node<T> as *mut Link,
+                    mark   : PhantomData,
                 }
             }
         }

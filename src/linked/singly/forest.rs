@@ -29,13 +29,20 @@ impl<T> Forest<T> {
     #[inline] pub fn is_empty( &self ) -> bool { self.link.has_no_child() }
 
     #[inline] pub(crate) fn set_child( &mut self, node: *mut Node<T> ) { self.link.set_child( node as *mut Link ); }
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Forest{ link: Link{ next: null_mut(), child: node as *mut Link }, mark: PhantomData }}
+
+    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self {
+        Forest{
+            link: Link{ next: null_mut(), child: node as *mut Link },
+            mark: PhantomData
+        }
+    }
+
     #[inline] pub(crate) fn clear( &mut self ) { self.link.reset_child(); }
 
     #[inline] pub(crate) unsafe fn set_sib( &mut self, sib: *mut Node<T> ) { (*self.tail()).set_sib( sib ); }
 
     #[inline] pub(crate) unsafe fn head ( &self ) -> *mut Node<T> { self.link.head() as *mut Node<T> }
-    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> {  self.link.tail() as *mut Node<T> }
+    #[inline] pub(crate) fn tail ( &self ) -> *mut Node<T> { self.link.tail() as *mut Node<T> }
     #[inline] pub(crate) unsafe fn new_head( &self ) -> *mut Node<T> { self.link.new_head() as *mut Node<T> }
 
     #[inline] pub(crate) unsafe fn has_only_one_child( &self ) -> bool { self.link.has_only_one_child() }

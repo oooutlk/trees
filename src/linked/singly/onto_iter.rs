@@ -9,7 +9,6 @@ pub struct Subnode<'a, T:'a>{
     node   : &'a mut Node<T>,
     prev   : *mut Node<T>,
     parent : *mut Link,
-    //ptail : *mut *mut Node<T>,
 }
 
 impl<'a, T:'a> Subnode<'a,T> {
@@ -90,7 +89,6 @@ pub struct OntoIter<'a, T:'a>{
     pub(crate) curr   : *mut Node<T>,
     pub(crate) prev   : *mut Node<T>,
     pub(crate) child  : *mut Node<T>,
-    //pub(crate) ptail : *mut *mut Node<T>,
     pub(crate) parent : *mut Link,
     pub(crate) mark   : PhantomData<&'a mut Node<T>>,
 }

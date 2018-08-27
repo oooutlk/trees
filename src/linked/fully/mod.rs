@@ -8,6 +8,7 @@ pub use self::forest::Forest;
 
 pub mod node;
 pub use self::node::Node;
+pub(crate) use self::node::Link;
 
 pub mod notation;
 pub use self::notation::{tr,fr}; 
