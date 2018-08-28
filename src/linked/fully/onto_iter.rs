@@ -24,11 +24,11 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_before( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*self.node.link.prev).next = sib.root as *mut Link;
-            sib.root_mut().set_sib( self.node.link.prev as *mut Node<T>, self.node as *mut Node<T> );
-            self.node.link.prev = sib.root as *mut Link;
-            sib.root_mut().link.set_parent( self.node.link.parent );
-            (*self.parent).size += Size{ degree: 1, node_cnt: sib.root().link.size.node_cnt };
+            (*self.node.prev).next = sib.root_mut().plink();
+            sib.root_mut().set_sib( self.node.prev, self.node.plink() );
+            self.node.prev = sib.root_mut().plink();
+            sib.root_mut().set_parent( self.node.parent );
+            (*self.parent).size += Size{ degree: 1, node_cnt: sib.root().size.node_cnt };
         }
         sib.clear();
     }
@@ -46,14 +46,14 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*self.node.next()).link.prev = sib.root as *mut Link;
-            sib.root_mut().set_sib( self.node as *mut Node<T>, self.node.next() );
-            self.node.link.next = sib.root as *mut Link;
-            let parent = self.node.link.parent;
-            sib.root_mut().link.set_parent( parent );
-            (*self.parent).size += Size{ degree: 1, node_cnt: sib.root().link.size.node_cnt };
-            if (*parent).tail() == self.node as *mut Node<T> as *mut Link {
-                (*parent).set_child( sib.root as *mut Link ); 
+            (*self.node.next).prev = sib.root_mut().plink();
+            sib.root_mut().set_sib( self.node.plink(), self.node.next );
+            self.node.next = sib.root_mut().plink();
+            let parent = self.node.parent;
+            sib.root_mut().set_parent( parent );
+            (*self.parent).size += Size{ degree: 1, node_cnt: sib.root().size.node_cnt };
+            if (*parent).tail() == self.node.plink() {
+                (*parent).set_child( sib.root_mut().plink() ); 
             }
         }
         sib.clear();
@@ -72,14 +72,14 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     #[inline] pub fn depart( self ) -> Tree<T> {
         unsafe {
-            if (*self.parent).tail() == self.node as *mut Node<T> as *mut Link {
-                (*self.parent).set_child( ( if self.node.has_no_sib() { null_mut() } else { self.node.link.prev } ) as *mut Link );
+            if (*self.parent).tail() == self.node.plink() {
+                (*self.parent).set_child( if self.node.has_no_sib() { null_mut() } else { self.node.prev });
             }
-            (*self.parent).size -= Size{ degree: 1, node_cnt: self.node.link.size.node_cnt };
+            (*self.parent).size -= Size{ degree: 1, node_cnt: self.node.size.node_cnt };
             self.node.reset_parent();
-            (*self.node.link.prev).next = self.node.link.next as *mut Link;
-            (*self.node.link.next).prev = self.node.link.prev as *mut Link;
-            Tree::from( self.node as *mut Node<T> )
+            (*self.node.prev).next = self.node.next;
+            (*self.node.next).prev = self.node.prev;
+            Tree::from( self.node.plink() )
         }
     }
 }
@@ -93,10 +93,10 @@ impl<'a, T:'a> DerefMut for Subnode<'a,T> { fn deref_mut( &mut self ) -> &mut No
 
 /// Mutable iterator allowing modification of parent or sib links.
 pub struct OntoIter<'a, T:'a>{
-    pub(crate) next   : *mut Node<T>,
-    pub(crate) curr   : *mut Node<T>,
-    pub(crate) prev   : *mut Node<T>,
-    pub(crate) child  : *mut Node<T>,
+    pub(crate) next   : *mut Link,
+    pub(crate) curr   : *mut Link,
+    pub(crate) prev   : *mut Link,
+    pub(crate) child  : *mut Link,
     pub(crate) parent : *mut Link,
     pub(crate) mark   : PhantomData<&'a mut Node<T>>,
 }
@@ -111,7 +111,7 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
                     return None;
                 }
                 unsafe { 
-                    if (*self.prev).next() != self.next { 
+                    if (*self.prev).next != self.next { 
                         self.prev = self.curr; // curr is not depart()-ed
                     }
                 }
@@ -120,8 +120,8 @@ impl<'a, T:'a> Iterator for OntoIter<'a,T> {
             if !self.next.is_null() {
                 let curr = self.next;
                 unsafe { 
-                    self.next = (*curr).next();
-                    return Some( Subnode{ node: &mut *curr, parent: self.parent });
+                    self.next = (*curr).next;
+                    return Some( Subnode{ node: &mut *( curr as *mut Node<T> ), parent: self.parent });
                 }
             }
         }

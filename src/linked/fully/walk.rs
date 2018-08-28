@@ -34,7 +34,7 @@ struct Nodes<T> {
 
 impl<T> Nodes<T> {
     /// Only the given node will be visited.
-    #[inline] fn this( node: *const Node<T> ) -> Self { Nodes{ node, sentinel: unsafe{ (*node).next() }}}
+    #[inline] fn this( node: *const Node<T> ) -> Self { Nodes{ node, sentinel: unsafe{ (*node).next as *const Node<T> }}}
 
     /// The given node and all its siblings will be visited.
     #[inline] fn sibs( node: *const Node<T> ) -> Self { Nodes{ node, sentinel: node }}
@@ -140,7 +140,7 @@ impl<T> Walk<T> {
                             continue;
                         } else {
                             let head = unsafe{ node.head() };
-                            new_nodes = Some( Nodes::sibs( head ));
+                            new_nodes = Some( Nodes::sibs( head as *const Node<T> ));
                             self.visit_type = if unsafe{ (*head).is_leaf() } { VisitType::Leaf } else { VisitType::Begin };
                         }
                     } else {
@@ -151,7 +151,7 @@ impl<T> Walk<T> {
                 }
                 Direction::Right => {
                     if let Some( nodes ) = self.path.last_mut() {
-                        nodes.node = unsafe{ (*nodes.node).next() };
+                        nodes.node = unsafe{ (*nodes.node).next as *const Node<T> };
                         if nodes.node == nodes.sentinel {
                             self.direction = Direction::Up;
                             continue;
@@ -207,7 +207,7 @@ impl<T> Walk<T> {
     #[inline] fn to_sib( &mut self, n: usize ) -> Option<Visit<T>> {
         if let Some( nodes ) = self.path.last_mut() {
             for _ in 0..n {
-                nodes.node = unsafe{ (*nodes.node).next() };
+                nodes.node = unsafe{ (*nodes.node).next as *const Node<T> };
                 if nodes.node == nodes.sentinel {
                     self.direction = Direction::Up;
                     return None;
@@ -236,7 +236,7 @@ impl<T> Walk<T> {
                 return None;
             } else {
                 let head = unsafe{ node.head() };
-                new_nodes = Some( Nodes::sibs( head ));
+                new_nodes = Some( Nodes::sibs( head as *const Node<T> ));
                 self.visit_type = if unsafe{ (*head).is_leaf() } { VisitType::Leaf } else { VisitType::Begin };
             }
         } else {

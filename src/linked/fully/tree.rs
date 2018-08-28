@@ -1,6 +1,6 @@
 //! `Tree` composed of hierarchical `Node`s.
 
-use super::{Node,Forest};
+use super::{Node,Link,Forest};
 use super::heap;
 use rust::*;
 
@@ -12,7 +12,7 @@ pub struct Tree<T> {
 
 impl<T> Tree<T> {
     /// Creates a `Tree` with given data on heap.
-    #[inline] pub fn new( data: T ) -> Self { Self::from( heap::make_node( data )) }
+    #[inline] pub fn new( data: T ) -> Self { Self::from( heap::make_node( data ) as *mut Link )}
 
     #[inline] pub fn root( &self ) -> &Node<T> { unsafe { & *self.root }}
     #[inline] pub fn root_mut( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
@@ -28,14 +28,14 @@ impl<T> Tree<T> {
     /// assert_eq!( tree, tr(0) );
     /// ```
     #[inline] pub fn abandon( &mut self ) -> Forest<T> {
-        let forest = Forest::<T>::from( self.tail(), self.root().link.size );
-        self.reset_child();
-        self.link.size.degree = 0;
-        self.link.size.node_cnt = 1;
+        let forest = Forest::<T>::from( self.root().tail(), self.root().size );
+        self.root_mut().reset_child();
+        self.size.degree = 0;
+        self.size.node_cnt = 1;
         forest
     }
 
-    #[inline] pub(crate) fn from( node: *mut Node<T> ) -> Self { Tree{ root: node, mark: PhantomData } }
+    #[inline] pub(crate) fn from( root: *mut Link ) -> Self { Tree{ root: root as *mut Node<T>, mark: PhantomData }}
     #[inline] pub(crate) fn clear( mut self ) { self.root = null_mut(); }
 }
 

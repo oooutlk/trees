@@ -1,4 +1,4 @@
-use super::Node;
+use super::{Node,Link};
 use rust::*;
 
 /// An iterator over the sub `Node`s of a `Node` or `Forest`.
@@ -9,8 +9,8 @@ use rust::*;
 /// [`Node::iter`]: struct.Node.html#method.iter
 /// [`Forest::iter`]: struct.Forest.html#method.iter
 pub struct Iter<'a, T:'a> {
-    head : *const Node<T>,
-    tail : *const Node<T>,
+    head : *const Link,
+    tail : *const Link,
     len  : usize,
     mark : PhantomData<&'a Node<T>>,
 }
@@ -26,10 +26,10 @@ impl<'a, T:'a> Iterator for Iter<'a, T> {
             self.head = if self.head == self.tail {
                 null()
             } else {
-                (*node).next()
+                (*node).next
             };
             self.len -= 1;
-            Some( &*node )
+            Some( &*( node as *mut Node<T> ))
         }}
     }
 
@@ -37,7 +37,7 @@ impl<'a, T:'a> Iterator for Iter<'a, T> {
 }
 
 impl<'a, T:'a> Iter<'a, T> {
-    #[inline] pub(crate) fn new( head: *const Node<T>, tail: *const Node<T>, len: usize ) -> Self {
+    #[inline] pub(crate) fn new( head: *const Link, tail: *const Link, len: usize ) -> Self {
         Iter{ head, tail, len, mark: PhantomData }
     }
 }
@@ -60,8 +60,8 @@ impl<'a, T> FusedIterator for Iter<'a, T> {}
 /// [`Node::iter`]: struct.Node.html#method.iter_mut
 /// [`Forest::iter`]: struct.Forest.html#method.iter_mut
 pub struct IterMut<'a, T:'a> {
-    head : *mut Node<T>,
-    tail : *mut Node<T>,
+    head : *mut Link,
+    tail : *mut Link,
     len  : usize,
     mark : PhantomData<&'a mut Node<T>>,
 }
@@ -77,10 +77,10 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
             self.head = if self.head == self.tail {
                 null_mut()
             } else {
-                (*node).next()
+                (*node).next
             };
             self.len -= 1;
-            Some( &mut *node )
+            Some( &mut *( node as *mut Node<T> ))
         }}
     }
 
@@ -88,7 +88,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
 }
 
 impl<'a, T:'a> IterMut<'a, T> {
-    #[inline] pub(crate) fn new( head: *mut Node<T>, tail: *mut Node<T>, len: usize ) -> Self {
+    #[inline] pub(crate) fn new( head: *mut Link, tail: *mut Link, len: usize ) -> Self {
         IterMut{ head, tail, len, mark: PhantomData }
     }
 }
