@@ -57,8 +57,8 @@ impl<'a, T> FusedIterator for Iter<'a, T> {}
 /// This `struct` is created by [`Node::iter_mut`] and [`Forest::iter_mut`].
 ///  See its document for more.
 ///
-/// [`Node::iter`]: struct.Node.html#method.iter_mut
-/// [`Forest::iter`]: struct.Forest.html#method.iter_mut
+/// [`Node::iter_mut`]: struct.Node.html#method.iter_mut
+/// [`Forest::iter_mut`]: struct.Forest.html#method.iter_mut
 pub struct IterMut<'a, T:'a> {
     head : *mut Link,
     tail : *mut Link,

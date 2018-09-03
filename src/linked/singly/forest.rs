@@ -93,10 +93,12 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
-    /// let mut forest = -tr(1)-tr(2);
-    /// forest.push_front( tr(3) );
-    /// assert_eq!( forest.to_string(), "( 3 1 2 )" );
+    /// use trees::linked::singly::{tr,fr};
+    /// let mut forest = fr();
+    /// forest.push_front( tr(1) );
+    /// assert_eq!( forest.to_string(), "( 1 )" );
+    /// forest.push_front( tr(2) );
+    /// assert_eq!( forest.to_string(), "( 2 1 )" );
     /// ```
     #[inline] pub fn push_front( &mut self, mut tree: Tree<T> ) {
         let tree_root = tree.root_mut().plink();
@@ -114,10 +116,12 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
-    /// let mut forest = -tr(1)-tr(2);
-    /// forest.push_back( tr(3) );
-    /// assert_eq!( forest.to_string(), "( 1 2 3 )" );
+    /// use trees::linked::singly::{tr,fr};
+    /// let mut forest = fr();
+    /// forest.push_back( tr(1) );
+    /// assert_eq!( forest.to_string(), "( 1 )" );
+    /// forest.push_back( tr(2) );
+    /// assert_eq!( forest.to_string(), "( 1 2 )" );
     /// ```
     #[inline] pub fn push_back( &mut self, mut tree: Tree<T> ) {
         let tree_root = tree.root_mut().plink();
@@ -140,6 +144,8 @@ impl<T> Forest<T> {
     /// let mut forest = -tr(1)-tr(2);
     /// assert_eq!( forest.pop_front(), Some( tr(1) ));
     /// assert_eq!( forest.to_string(), "( 2 )" );
+    /// assert_eq!( forest.pop_front(), Some( tr(2) ));
+    /// assert_eq!( forest.to_string(), "()" );
     /// ```
     #[inline] pub fn pop_front( &mut self ) -> Option<Tree<T>> {
         if self.is_empty() {
@@ -161,11 +167,12 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
-    /// let mut forest1 = -tr(0)-tr(1);
-    /// let mut forest2 = -tr(2)-tr(3);
-    /// forest1.prepend( forest2 );
-    /// assert_eq!( forest1.to_string(), "( 2 3 0 1 )" );
+    /// use trees::linked::singly::{tr,fr};
+    /// let mut forest = fr();
+    /// forest.prepend( -tr(0)-tr(1) );
+    /// assert_eq!( forest.to_string(), "( 0 1 )" );
+    /// forest.prepend( -tr(2)-tr(3) );
+    /// assert_eq!( forest.to_string(), "( 2 3 0 1 )" );
     /// ```
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
@@ -185,11 +192,12 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
-    /// let mut forest1 = -tr(0)-tr(1);
-    /// let mut forest2 = -tr(2)-tr(3);
-    /// forest1.append( forest2 );
-    /// assert_eq!( forest1.to_string(), "( 0 1 2 3 )" );
+    /// use trees::linked::singly::{tr,fr};
+    /// let mut forest = fr();
+    /// forest.append( -tr(0)-tr(1) );
+    /// assert_eq!( forest.to_string(), "( 0 1 )" );
+    /// forest.append( -tr(2)-tr(3) );
+    /// assert_eq!( forest.to_string(), "( 0 1 2 3 )" );
     /// ```
     #[inline] pub fn append( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
@@ -208,11 +216,16 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
+    /// use trees::linked::singly::{tr,fr};
+    ///
+    /// let forest = fr::<i32>();
+    /// assert_eq!( forest.iter().next(), None );
+    ///
     /// let forest = -tr(1)-tr(2);
     /// let mut iter = forest.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
     /// assert_eq!( iter.next(), Some( tr(2).root() ));
+    /// assert_eq!( iter.next(), None );
     /// assert_eq!( iter.next(), None );
     /// ```
     #[inline] pub fn iter<'a>( &self ) -> Iter<'a,T> {
@@ -228,7 +241,11 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::linked::singly::tr;
+    /// use trees::linked::singly::{tr,fr};
+    ///
+    /// let mut forest = fr::<i32>();
+    /// assert_eq!( forest.iter_mut().next(), None );
+    ///
     /// let mut forest = -tr(1)-tr(2);
     /// for child in forest.iter_mut() { child.data *= 10; }
     /// assert_eq!( forest.to_string(), "( 10 20 )" );

@@ -1,4 +1,4 @@
-//! `Tree`/`Forest` implemented in last-child/next-sibling `Node`s, allocated on heap
+//! `Tree`/`Forest` implemented in last-child/next-sibling `Node`s, allocated on heap, without size information tracked.
 
 pub mod tree;
 pub use self::tree::Tree; 
@@ -114,4 +114,19 @@ mod tests {
         assert_eq!( forest, tr(1)-tr(2)-tr(3)-tr(4) );
     }
 
+    #[test]
+    fn borrow_forest() {
+        let mut tree = tr(0) /tr(1) /tr(2);
+        {
+            let forest: &Forest<_> = tree.borrow();
+            assert_eq!( forest.to_string(), "( 1 2 )" );
+        }
+        {
+            let forest: &mut Forest<_> = tree.borrow_mut();
+            for node in forest.iter_mut() {
+                node.data *= 10;
+            }
+        }
+        assert_eq!( tree.to_string(), "0( 10 20 )" );
+    }
 }

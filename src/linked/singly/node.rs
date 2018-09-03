@@ -45,6 +45,33 @@ impl<T> Node<T> {
 
     #[inline] pub(crate) fn plink( &mut self ) -> *mut Link { &mut self.link as *mut Link }
 
+    /// Returns the given `Tree`'s children as a borrowed `Forest`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::linked::singly::tr;
+    /// let mut tree = tr(0) /tr(1)/tr(2);
+    /// assert_eq!( tree.forest().to_string(), "( 1 2 )" );
+    /// ```
+    #[inline] pub fn forest( &self ) -> &Forest<T> {
+        unsafe{ &*( &self.link as *const Link as *const Forest<T> )}
+    }
+
+    /// Returns the given `Tree`'s children as a mutable borrowed `Forest`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::linked::singly::tr;
+    /// let mut tree = tr(0) /tr(1)/tr(2);
+    /// for child in tree.forest_mut().iter_mut() { child.data *= 10; }
+    /// assert_eq!( tree.to_string(), "0( 10 20 )" );
+    /// ```
+    #[inline] pub fn forest_mut( &mut self ) -> &mut Forest<T> {
+        unsafe{ &mut *( self.plink() as *mut Forest<T> )}
+    }
+
     /// Returns the first child of the forest,
     /// or None if it is empty.
     pub fn first( &self ) -> Option<&Node<T>> {
@@ -91,7 +118,9 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
-    /// let mut tree = tr(0) /tr(1);
+    /// let mut tree = tr(0);
+    /// tree.push_front( tr(1) );
+    /// assert_eq!( tree.to_string(), "0( 1 )" );
     /// tree.push_front( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 2 1 )" );
     /// ```
@@ -114,7 +143,9 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
-    /// let mut tree = tr(0) /tr(1);
+    /// let mut tree = tr(0);
+    /// tree.push_back( tr(1) );
+    /// assert_eq!( tree.to_string(), "0( 1 )" );
     /// tree.push_back( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
     /// ```
@@ -139,6 +170,8 @@ impl<T> Node<T> {
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// assert_eq!( tree.pop_front(), Some( tr(1) ));
     /// assert_eq!( tree.to_string(), "0( 2 )" );
+    /// assert_eq!( tree.pop_front(), Some( tr(2) ));
+    /// assert_eq!( tree.to_string(), "0" );
     /// ```
     #[inline] pub fn pop_front( &mut self ) -> Option<Tree<T>> {
         if self.is_leaf() {
@@ -162,9 +195,11 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
-    /// let mut tree = tr(0) /tr(1);
-    /// tree.prepend( -tr(2)-tr(3) );
-    /// assert_eq!( tree.to_string(), "0( 2 3 1 )" );
+    /// let mut tree = tr(0);
+    /// tree.prepend( -tr(1)-tr(2) );
+    /// assert_eq!( tree.to_string(), "0( 1 2 )" );
+    /// tree.prepend( -tr(3)-tr(4) );
+    /// assert_eq!( tree.to_string(), "0( 3 4 1 2 )" );
     /// ```
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
@@ -185,9 +220,11 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
-    /// let mut tree = tr(0) /tr(1);
-    /// tree.append( -tr(2)-tr(3) );
-    /// assert_eq!( tree.to_string(), "0( 1 2 3 )" );
+    /// let mut tree = tr(0);
+    /// tree.append( -tr(1)-tr(2) );
+    /// assert_eq!( tree.to_string(), "0( 1 2 )" );
+    /// tree.append( -tr(3)-tr(4) );
+    /// assert_eq!( tree.to_string(), "0( 1 2 3 4 )" );
     /// ```
     #[inline] pub fn append( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
@@ -209,10 +246,15 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
+    ///
+    /// let tree = tr(0);
+    /// assert_eq!( tree.iter().next(), None );
+    ///
     /// let tree = tr(0) /tr(1)/tr(2);
     /// let mut iter = tree.iter();
     /// assert_eq!( iter.next(), Some( tr(1).root() ));
     /// assert_eq!( iter.next(), Some( tr(2).root() ));
+    /// assert_eq!( iter.next(), None );
     /// assert_eq!( iter.next(), None );
     /// ```
     #[inline] pub fn iter<'a>( &self ) -> Iter<'a,T> {
@@ -229,6 +271,10 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::linked::singly::tr;
+    ///
+    /// let mut tree = tr(0);
+    /// assert_eq!( tree.iter_mut().next(), None );
+    ///
     /// let mut tree = tr(0) /tr(1)/tr(2);
     /// for child in tree.iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
@@ -283,6 +329,9 @@ impl<T> Extend<Tree<T>> for Node<T> {
         }
     }
 }
+
+impl<T> Borrow<Forest<T>> for Tree<T> { fn borrow( &self ) -> &Forest<T> { self.forest() }}
+impl<T> BorrowMut<Forest<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Forest<T> { self.forest_mut() }}
 
 impl<T:Debug> Debug for Node<T> {
     fn fmt( &self, f: &mut Formatter ) -> fmt::Result {

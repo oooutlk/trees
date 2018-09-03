@@ -11,10 +11,12 @@
 //!
 //! General purpose tree library.
 //!
-//! The current version provides the tree implemented in classic child-sibling nodes.
-//! More kinds of trees may be added in the future.
-//!
-//! [`signly_linked`]: signly_linked/index.html
+//! The current version provides two implementions of heap-allocated, child-sibling linked trees.
+//! The default implementation is [`linked::fully`](linked/fully/index.html),
+//! which stores previous/next sibling and parent/child pointers in one node, with size information tracked.
+//! The alternative is [`linked::singly`](linked/singly/index.html),
+//! which stores only next sibling and last child pointers in one node, without size information tracked.
+//! More kinds of trees will be added in the future.
 //!
 //! This crate can be used with or without libstd. 
 //!
@@ -60,23 +62,20 @@
 //! 3. `Tree` traversal, using `Node::iter()` recursively
 //!
 //!     ```rust
-//!     use std::string::{String,ToString};
 //!     use trees::{tr,Node};
+//!     use std::fmt::Display;
 //!
 //!     let tree = tr(0)
 //!         /( tr(1) /tr(2)/tr(3) )
 //!         /( tr(4) /tr(5)/tr(6) );
 //!
-//!     fn tree_to_string<T:ToString>( node: &Node<T> ) -> String {
+//!     fn tree_to_string<T:Display>( node: &Node<T> ) -> String {
 //!         if node.is_leaf() {
 //!             node.data.to_string()
 //!         } else {
-//!             node.data.to_string()
-//!                 + &"( "
-//!                 + &node.iter()
-//!                     .fold( String::new(),
-//!                         |s,c| s + &tree_to_string(c) + &" " )
-//!                 + &")"
+//!             format!( "{}( {})", node.data, 
+//!                 node.iter().fold( String::new(),
+//!                     |s,c| s + &tree_to_string(c) + &" " ))
 //!         }
 //!     }
 //!
@@ -110,18 +109,25 @@
 //! ### Concepts
 //!
 //! 1. `Tree` is composed of a root `Node` and an optional `Forest` as its children. A tree can NOT be empty.
-//!     ```rust,no_run
+//!     ```rust
 //!     use trees::{tr,Tree,Forest};
 //!
 //!     let mut tree: Tree<i32> = tr(0);
+//!
 //!     let forest: Forest<i32> = -tr(1)-tr(2)-tr(3);
 //!     tree.append( forest );
-//!     let forest = tree.abandon();
+//!     assert_eq!( tree, tr(0) /tr(1) /tr(2) /tr(3) );
+//!
+//!     { let _forest: &Forest<i32>     = tree.forest();     }
+//!     { let _forest: &mut Forest<i32> = tree.forest_mut(); }
+//!     { let _forest: Forest<i32>      = tree.abandon();    }
+//!
+//!     assert_eq!( tree, tr(0) );
 //!     ```
 //!
 //! 2. `Forest` is composed of `Node`s as its children. A forest can be empty.
 //!     ```rust,no_run
-//!     use trees::{tr,fr,Tree,Forest};
+//!     use trees::{tr,fr,Forest};
 //!
 //!     let mut forest: Forest<i32> = fr(); // an empty forest
 //!     forest.push_back( tr(1) );          // forest has one tree
@@ -183,17 +189,28 @@
 //!
 //! 2. `Clone` for `Tree` and `Forest` makes deep copy which clones all its decendant nodes. To do copy for just one node, simplely `let cloned = trees::tr( node.data.clone() );`.
 //!
-//! 3. No bookkeeping of size information. 
+//! 3. `linked::fully::Node` will track count of children nodes, and count of all descendant nodes and itself, while `linked::singly::node` does not track any size information.
 //!
 //! ### Panics
 //!
 //! No panics unless `Clone` is involved:
 //! * `Node::<T>::to_owned()`
 //! * `Tree::<T>::clone()`
-//! *  `Forest::<T>::clone()`
-//! *  all of the operator overloading functions the operands of which contain at least one referenced type.
+//! * `Forest::<T>::clone()`
+//! * all of the operator overloading functions the operands of which contain at least one referenced type.
 //!
 //! Panics if and only if `T::clone()` panics.
+//!
+//! ### Safety
+//!
+//! Collections of pointer-based tree implementation require many `unsafe`s to do raw pointer dereferences.
+//! Currently this crate contains **150 `unsafe`** lines in its source code.
+//!
+//! A node's value is composed of its **`data`** field and the **structure** of its descendant nodes.
+//! So adding/removing/modifying a child of a node are regarded as modifying its value.
+//! And the only possible way to obtain mutable references on a child node is via its parent's mutable reference.
+//! Rust borrow checker guarantees memory safety in safe code, and the author of this crate is responsible for memory safety
+//! inside `Node`s methods which take `&mut self` and contain `unsafe` blocks.
 
 #![cfg_attr( feature = "no_std", no_std )]
 #![cfg_attr( feature = "no_std", feature( alloc ))]
@@ -230,3 +247,5 @@ mod rust {
 
 pub mod linked;
 pub use linked::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
+
+//pub mod potted;
