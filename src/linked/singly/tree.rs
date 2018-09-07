@@ -1,7 +1,8 @@
 //! `Tree` composed of hierarchical `Node`s.
 
 use super::{Node,Link,Forest};
-use super::heap;
+use super::{heap,bfs};
+use super::forest::IntoIter;
 use rust::*;
 
 /// A non-nullable tree
@@ -16,6 +17,12 @@ impl<T> Tree<T> {
 
     #[inline] pub fn root( &self ) -> &Node<T> { unsafe { & *self.root }}
     #[inline] pub fn root_mut( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
+
+    #[inline] fn into_data( self ) -> T {
+        let data = unsafe{ ptr::read( &self.root().data )};
+        self.clear();
+        data
+    }
 
     /// Removes and returns the given `Tree`'s children.
     ///
@@ -33,8 +40,45 @@ impl<T> Tree<T> {
         forest
     }
 
+    /// Provides a forward iterator with owned data in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::bfs;
+    /// use trees::linked::singly::tr;
+    ///
+    /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+    /// let visits = tree.bfs_into_iter().collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit::Data(0),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(1),
+    ///     bfs::Visit::Data(4),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(2),
+    ///     bfs::Visit::Data(3),
+    ///     bfs::Visit::SiblingsEnd,
+    ///     bfs::Visit::Data(5),
+    ///     bfs::Visit::Data(6),
+    ///     bfs::Visit::GenerationEnd,
+    /// ]);
+    /// ```
+    pub fn bfs_into_iter( self ) -> bfs::BfsIter<T,IntoIter<T>> { bfs::BfsIter::from( self, 0 )}
+
     #[inline] pub(crate) fn from( root: *mut Link ) -> Self { Tree{ root: root as *mut Node<T>, mark: PhantomData } }
     #[inline] pub(crate) fn clear( mut self ) { self.root = null_mut(); }
+}
+
+impl<T> bfs::Split<T,Self,IntoIter<T>> for Tree<T> {
+    fn split( mut self ) -> ( Option<T>, Option<IntoIter<T>> ) {
+        let iter = if self.is_leaf() {
+            None
+        } else {
+            Some( self.abandon().into_iter() )
+        };
+        ( Some( self.into_data() ), iter )
+    }
 }
 
 impl<T> Borrow<Node<T>> for Tree<T> { fn borrow( &self ) -> &Node<T> { self.root() }}

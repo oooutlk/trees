@@ -1,6 +1,7 @@
 //! Tree node implementation.
 
 use super::{Tree,Forest,Iter,IterMut,OntoIter};
+use super::bfs;
 use rust::*;
 
 pub struct Link {
@@ -240,7 +241,7 @@ impl<T> Node<T> {
         }
     }
 
-    /// Provides a forward iterator over sub `Node`s
+    /// Provides a forward iterator over child `Node`s
     ///
     /// # Examples
     ///
@@ -265,7 +266,7 @@ impl<T> Node<T> {
         }}
     }
 
-    /// Provides a forward iterator over sub `Node`s with mutable references.
+    /// Provides a forward iterator over child `Node`s with mutable references.
     ///
     /// # Examples
     ///
@@ -308,6 +309,80 @@ impl<T> Node<T> {
                 }
             }
         }
+    }
+
+    /// Provides a forward iterator in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::bfs;
+    /// use trees::linked::singly::tr;
+    ///
+    /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+    /// let visits = tree.root().bfs_iter().collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit::Data(&0),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(&1),
+    ///     bfs::Visit::Data(&4),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(&2),
+    ///     bfs::Visit::Data(&3),
+    ///     bfs::Visit::SiblingsEnd,
+    ///     bfs::Visit::Data(&5),
+    ///     bfs::Visit::Data(&6),
+    ///     bfs::Visit::GenerationEnd,
+    /// ]);
+    /// ```
+    pub fn bfs_iter( &self ) -> bfs::BfsIter<&T,Iter<T>> { bfs::BfsIter::from( self, 0 )}
+
+    /// Provides a forward iterator with mutable references in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::bfs;
+    /// use trees::linked::singly::tr;
+    ///
+    /// let mut tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+    /// let visits = tree.root_mut().bfs_iter_mut().collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit::Data(&mut 0),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(&mut 1),
+    ///     bfs::Visit::Data(&mut 4),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(&mut 2),
+    ///     bfs::Visit::Data(&mut 3),
+    ///     bfs::Visit::SiblingsEnd,
+    ///     bfs::Visit::Data(&mut 5),
+    ///     bfs::Visit::Data(&mut 6),
+    ///     bfs::Visit::GenerationEnd,
+    /// ]);
+    /// ```
+    pub fn bfs_iter_mut( &mut self ) -> bfs::BfsIter<&mut T,IterMut<T>> { bfs::BfsIter::from( self, 0 )}
+}
+
+impl<'a, T:'a> bfs::Split<&'a T,&'a Node<T>,Iter<'a,T>> for &'a Node<T> {
+    fn split( self ) -> ( Option<&'a T>, Option<Iter<'a,T>> ) {
+        let iter = if self.is_leaf() {
+            None
+        } else {
+            Some( self.iter() )
+        };
+        ( Some( &self.data ), iter )
+    }
+}
+
+impl<'a, T:'a> bfs::Split<&'a mut T,&'a mut Node<T>,IterMut<'a,T>> for &'a mut Node<T> {
+    fn split( self ) -> ( Option<&'a mut T>, Option<IterMut<'a,T>> ) {
+        let iter = if self.is_leaf() {
+            None
+        } else {
+            Some( self.iter_mut() )
+        };
+        ( Some( &mut self.data ), iter )
     }
 }
 

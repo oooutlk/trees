@@ -24,6 +24,8 @@ pub mod heap;
 pub mod walk;
 pub use self::walk::{Visit,TreeWalk,ForestWalk};
 
+use super::bfs;
+
 #[cfg(test)]
 mod tests {
     use super::*;

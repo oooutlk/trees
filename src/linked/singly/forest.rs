@@ -1,6 +1,7 @@
 //! `Forest` composed of disjoint `Tree`s.
 
 use super::{Node,Link,Tree,Iter,IterMut,OntoIter};
+use super::bfs;
 use rust::*;
 
 /// A nullable forest
@@ -211,7 +212,7 @@ impl<T> Forest<T> {
         }
     }
 
-    /// Provides a forward iterator over `Forest`'s `Tree`s' root `Node`s
+    /// Provides a forward iterator over child `Node`s
     ///
     /// # Examples
     ///
@@ -236,7 +237,7 @@ impl<T> Forest<T> {
         }}
     }
 
-    /// Provides a forward iterator over `Forest`'s `Tree`s' root `Node`s with mutable references.
+    /// Provides a forward iterator over child `Node`s with mutable references.
     ///
     /// # Examples
     ///
@@ -279,6 +280,41 @@ impl<T> Forest<T> {
                 }
             }
         }
+    }
+
+    /// Provides a forward iterator with owned data in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::bfs;
+    /// use trees::linked::singly::tr;
+    ///
+    /// let forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
+    /// let visits = forest.bfs_into_iter().collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit::Data(1),
+    ///     bfs::Visit::Data(4),
+    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit::Data(2),
+    ///     bfs::Visit::Data(3),
+    ///     bfs::Visit::SiblingsEnd,
+    ///     bfs::Visit::Data(5),
+    ///     bfs::Visit::Data(6),
+    ///     bfs::Visit::GenerationEnd,
+    /// ]);
+    /// ```
+    pub fn bfs_into_iter( self ) -> bfs::BfsIter<T,IntoIter<T>> { bfs::BfsIter::from( self, 1 )}
+}
+
+impl<T> bfs::Split<T,Tree<T>,IntoIter<T>> for Forest<T> {
+    fn split( self ) -> ( Option<T>, Option<IntoIter<T>> ) {
+        let iter = if self.is_empty() {
+            None
+        } else {
+            Some( self.into_iter() )
+        };
+        ( None, iter )
     }
 }
 

@@ -24,6 +24,8 @@ pub mod heap;
 pub mod walk;
 pub use self::walk::{Visit,TreeWalk,ForestWalk};
 
+use super::bfs;
+
 #[derive(Copy,Clone)]
 pub struct Size {
     degree   : u32, // count of children node

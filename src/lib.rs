@@ -175,7 +175,7 @@
 //! 
 //!     do whatever you want to.
 //! 
-//! ### Traversal
+//! ### Traversal in depth-first manner
 //!
 //! Using `TreeWalk`/`ForestWalk` to traverse on `Tree`/`Forest`, you can:
 //!
@@ -190,6 +190,12 @@
 //! 2. `Clone` for `Tree` and `Forest` makes deep copy which clones all its decendant nodes. To do copy for just one node, simplely `let cloned = trees::tr( node.data.clone() );`.
 //!
 //! 3. `linked::fully::Node` will track count of children nodes, and count of all descendant nodes and itself, while `linked::singly::node` does not track any size information.
+//!
+//! ### Traversal in breadth-first manner
+//!
+//! 1. `Node` provides (mutably) borrowed iterator `fn bfs_iter( &self )`/`fn bfs_iter_mut( &mut self )`.
+//!
+//! 2. `Tree`/`Forest` provides owned iterator `fn bfs_into_iter( self )`.
 //!
 //! ### Panics
 //!
@@ -219,33 +225,32 @@ mod rust {
     #[cfg(not(feature="no_std"))] extern crate core;
     #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,BorrowMut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::boxed::Box;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::*;
+    #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::{self,*};
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt;
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{Debug,Display,Formatter};
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
     #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::marker::{PhantomData};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Deref,DerefMut,Div,Neg,Sub};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{null,null_mut};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
     #[cfg(feature="no_std")] extern crate alloc;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::vec::Vec;
-    #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering;
-    #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::*;
+    #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::{self,*};
     #[cfg(feature="no_std")] pub(crate) use core::fmt;
     #[cfg(feature="no_std")] pub(crate) use core::fmt::{Debug,Display,Formatter};
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
     #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
-    #[cfg(feature="no_std")] pub(crate) use core::marker::{PhantomData};
+    #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
     #[cfg(feature="no_std")] pub(crate) use core::ops::{Deref,DerefMut,Div,Neg,Sub};
-    #[cfg(feature="no_std")] pub(crate) use core::ptr::{null,null_mut};
+    #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,null,null_mut};
 }
 
 pub mod linked;
 pub use linked::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
 
 //pub mod potted;
+pub mod bfs;
