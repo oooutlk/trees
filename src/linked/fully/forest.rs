@@ -367,7 +367,11 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// use trees::bfs;
-    /// use trees::linked::fully::tr;
+    /// use trees::linked::fully::{tr,fr};
+    ///
+    /// let forest = fr::<i32>();
+    /// let visits = forest.bfs_into_iter().collect::<Vec<_>>();
+    /// assert!( visits.is_empty() );
     ///
     /// let forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
     /// let visits = forest.bfs_into_iter().collect::<Vec<_>>();
