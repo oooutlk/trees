@@ -4,101 +4,91 @@ use rust::*;
 
 /// An enum for one visit in breadth first search.
 #[derive(Debug,PartialEq,Eq)]
-pub enum Visit<T> {
-    Data( T ),      // T can be referenced, mutable referenced, or owned data
-    SiblingsEnd,    // marks the end of consuming all the children of some node
-    GenerationEnd,  // marks the end of consuming all the nodes of the same height in the tree
+pub struct Visit<T> {
+    pub data   : T,
+    pub degree : usize,
 }
 
-/// For treelike collections to split its children from its top-level data
-pub trait Split<T,Item,Iter>
-    where Iter: Iterator<Item=Item>
-{
-    fn split( self ) -> ( Option<T>, Option<Iter> );
-}
+pub trait Split {
+    type Item;
+    type Iter: ExactSizeIterator;
 
-// Queue elemnt composed of tree root and its children
-struct Splitted<T,Iter> {
-    data: Option<T>,    // None for consumed or absense( e.g. Forest has no top-level data )
-    iter: Option<Iter>, // None for leaf tree node
-}
-
-impl<T,Item,Iter> Splitted<T,Iter>
-    where Iter: Iterator<Item=Item>
-{
-    fn from<Collection>( collection: Collection ) -> Self
-        where Collection: Split<T,Item,Iter>
-    {
-        let ( data, iter ) = collection.split();
-        Self{ data, iter }
-    }
+    fn split( self ) -> ( Self::Item, Self::Iter );
 }
 
 /// An iterator in breadth-first manner
-pub struct BfsIter<T,Iter> {
-    queue : Vec<Splitted<T,Iter>>,
-    en    : usize, // index of queue for producing more T 
-    gen   : usize, // index of queue for generation separation
-    de    : usize, // index of queue for consuming next T
+pub struct BfsIter<Iter> {
+    iters : VecDeque<Iter>,
 }
 
-impl<T,Item,Iter> BfsIter<T,Iter>
-    where Iter: Iterator<Item=Item>
+impl<Treelike,Item,Iter> From<Treelike> for BfsIter<Iter>
+    where Treelike : IntoIterator<Item=Item,IntoIter=Iter>
+        ,     Iter : Iterator<Item=Item>
 {
-    /// Creates a `BfsIter` from a treelike collection.
-    pub fn from<Collection>( collection: Collection, de: usize ) -> Self
-        where Collection: Split<T,Item,Iter>
-    {
-        let queue = vec![ Splitted::from( collection )];
-        Self{ queue, en: 0, gen: de, de }
-    }
-
-    fn next_data( &mut self ) -> Option<Visit<T>> {
-        let data = self.queue[ self.de ].data.take().unwrap();
-        self.de += 1;
-        Some( Visit::Data( data ))
+    fn from( treelike: Treelike ) -> Self {
+        let mut iters = VecDeque::new();
+        iters.push_back( treelike.into_iter() );
+        BfsIter{ iters }
     }
 }
 
-impl<T,Item,Iter> Iterator for BfsIter<T,Iter>
-    where Item: Split<T,Item,Iter>, Iter: Iterator<Item=Item>
+impl<T,Item,Iter> Iterator for BfsIter<Iter>
+    where Iter : ExactSizeIterator<Item=Item>
+        , Item : Split<Iter=Iter,Item=T>
 {
     type Item = Visit<T>;
 
     #[inline] fn next( &mut self ) -> Option<Self::Item> {
-        if self.de < self.queue.len() {
-            self.next_data()
-        } else if self.gen == self.en {
-            if self.gen < self.queue.len() {
-                self.gen = self.queue.len();
-                Some( Visit::GenerationEnd )
+        loop {
+            let next_item = 
+                if let Some( ref mut iter ) = self.iters.front_mut() {
+                    iter.next()
+                } else {
+                    return None;
+                };
+            if let Some( item ) = next_item {
+                let ( data, iter ) = item.split();
+                let degree = iter.len();
+                self.iters.push_back( iter );
+                return Some( Visit{ data, degree });
             } else {
-                None
+                self.iters.pop_front();
             }
-        } else if self.en < self.queue.len() {
-            let tree = if let Some( ref mut iter ) = self.queue[ self.en ].iter {
-                Some( iter.next() )
-            } else {
-                None
-            };
-            tree.map( |tree| { // test if any child
-                tree.map( |tree| { // test if all children consumed
-                    self.queue.push( Splitted::from( tree ));
-                    self.next_data()
-                }).unwrap_or_else( || { // all children consumed
-                    self.en += 1;
-                    if self.gen == self.en && self.gen < self.queue.len() {
-                        self.next() // remove SiblingsEnd if followed by GenerationEnd
-                    } else {
-                        Some( Visit::SiblingsEnd )
-                    }
-                })
-            }).unwrap_or_else( || { // no children
-                self.en += 1;
-                self.next()
-            })
-        } else {
-           None
+        }
+    }
+}
+
+pub struct BfsOnTree<Iter> { pub iter: BfsIter<Iter> }
+
+pub struct BfsOnForest<Iter> {
+    pub degree : usize,
+    pub iter   : BfsIter<Iter>,
+}
+
+pub enum Bfs<Iter> {
+    OnTree( BfsOnTree<Iter> ),
+    OnForest( BfsOnForest<Iter> ),
+}
+
+impl<Item,Iter> Bfs<Iter>
+    where Iter: Iterator<Item=Item>
+{
+    pub fn from_tree<Treelike>( treelike: Treelike ) -> Self
+        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
+    {
+        Bfs::OnTree( BfsOnTree{ iter: BfsIter::<Iter>::from( treelike )})
+    }
+
+    pub fn from_forest<Treelike>( degree: usize, treelike: Treelike ) -> Self
+        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
+    {
+        Bfs::OnForest( BfsOnForest{ degree, iter: BfsIter::<Iter>::from( treelike )})
+    }
+
+    pub fn iter( self ) -> BfsIter<Iter> {
+        match self {
+            Bfs::OnTree(   on_tree   ) => on_tree.iter,
+            Bfs::OnForest( on_forest ) => on_forest.iter,
         }
     }
 }

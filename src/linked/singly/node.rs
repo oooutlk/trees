@@ -320,22 +320,18 @@ impl<T> Node<T> {
     /// use trees::linked::singly::tr;
     ///
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.root().bfs_iter().collect::<Vec<_>>();
+    /// let visits = tree.root().bfs().iter().collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit::Data(&0),
-    ///     bfs::Visit::GenerationEnd,
-    ///     bfs::Visit::Data(&1),
-    ///     bfs::Visit::Data(&4),
-    ///     bfs::Visit::GenerationEnd,
-    ///     bfs::Visit::Data(&2),
-    ///     bfs::Visit::Data(&3),
-    ///     bfs::Visit::SiblingsEnd,
-    ///     bfs::Visit::Data(&5),
-    ///     bfs::Visit::Data(&6),
-    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit{ data: &0, degree: 2 },
+    ///     bfs::Visit{ data: &1, degree: 2 },
+    ///     bfs::Visit{ data: &4, degree: 2 },
+    ///     bfs::Visit{ data: &2, degree: 0 },
+    ///     bfs::Visit{ data: &3, degree: 0 },
+    ///     bfs::Visit{ data: &5, degree: 0 },
+    ///     bfs::Visit{ data: &6, degree: 0 },
     /// ]);
     /// ```
-    pub fn bfs_iter( &self ) -> bfs::BfsIter<&T,Iter<T>> { bfs::BfsIter::from( self, 0 )}
+    pub fn bfs( &self ) -> bfs::Bfs<Iter<T>> { bfs::Bfs::from_tree( self )}
 
     /// Provides a forward iterator with mutable references in a breadth-first manner
     ///
@@ -346,43 +342,55 @@ impl<T> Node<T> {
     /// use trees::linked::singly::tr;
     ///
     /// let mut tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.root_mut().bfs_iter_mut().collect::<Vec<_>>();
+    /// let visits = tree.root_mut().bfs_mut().iter().collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit::Data(&mut 0),
-    ///     bfs::Visit::GenerationEnd,
-    ///     bfs::Visit::Data(&mut 1),
-    ///     bfs::Visit::Data(&mut 4),
-    ///     bfs::Visit::GenerationEnd,
-    ///     bfs::Visit::Data(&mut 2),
-    ///     bfs::Visit::Data(&mut 3),
-    ///     bfs::Visit::SiblingsEnd,
-    ///     bfs::Visit::Data(&mut 5),
-    ///     bfs::Visit::Data(&mut 6),
-    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit{ data: &mut 0, degree: 2 },
+    ///     bfs::Visit{ data: &mut 1, degree: 2 },
+    ///     bfs::Visit{ data: &mut 4, degree: 2 },
+    ///     bfs::Visit{ data: &mut 2, degree: 0 },
+    ///     bfs::Visit{ data: &mut 3, degree: 0 },
+    ///     bfs::Visit{ data: &mut 5, degree: 0 },
+    ///     bfs::Visit{ data: &mut 6, degree: 0 },
     /// ]);
     /// ```
-    pub fn bfs_iter_mut( &mut self ) -> bfs::BfsIter<&mut T,IterMut<T>> { bfs::BfsIter::from( self, 0 )}
+    pub fn bfs_mut( &mut self ) -> bfs::Bfs<IterMut<T>> { bfs::Bfs::from_tree( self )}
 }
 
-impl<'a, T:'a> bfs::Split<&'a T,&'a Node<T>,Iter<'a,T>> for &'a Node<T> {
-    fn split( self ) -> ( Option<&'a T>, Option<Iter<'a,T>> ) {
-        let iter = if self.is_leaf() {
-            None
-        } else {
-            Some( self.iter() )
-        };
-        ( Some( &self.data ), iter )
+impl<'a, T:'a> bfs::Split for &'a Node<T> {
+    type Item = &'a T;
+    type Iter = Iter<'a,T>;
+
+    fn split( self ) -> ( &'a T, Iter<'a,T> ) {
+        ( &self.data, self.iter() )
     }
 }
 
-impl<'a, T:'a> bfs::Split<&'a mut T,&'a mut Node<T>,IterMut<'a,T>> for &'a mut Node<T> {
-    fn split( self ) -> ( Option<&'a mut T>, Option<IterMut<'a,T>> ) {
-        let iter = if self.is_leaf() {
-            None
-        } else {
-            Some( self.iter_mut() )
-        };
-        ( Some( &mut self.data ), iter )
+impl<'a, T:'a> bfs::Split for &'a mut Node<T> {
+    type Item = &'a mut T;
+    type Iter = IterMut<'a,T>;
+
+    fn split( self ) -> ( &'a mut T, IterMut<'a,T> ) {
+        unsafe{ ( &mut *( &mut self.data as *mut T ), self.iter_mut() )}
+    }
+}
+
+impl<'a, T:'a> IntoIterator for &'a Node<T> {
+    type Item = Self;
+    type IntoIter = Iter<'a,T>;
+
+    #[inline] fn into_iter( self ) -> Self::IntoIter {
+        let link = self as *const Node<T> as *const Link;
+        Iter::new( link, link )
+    }
+}
+
+impl<'a, T:'a> IntoIterator for &'a mut Node<T> {
+    type Item = Self;
+    type IntoIter = IterMut<'a,T>;
+
+    #[inline] fn into_iter( self ) -> Self::IntoIter {
+        let link = self.plink();
+        IterMut::new( link, link )
     }
 }
 

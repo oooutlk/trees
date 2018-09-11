@@ -36,6 +36,9 @@ impl<'a, T:'a> Iterator for Iter<'a, T> {
     #[inline] fn size_hint( &self ) -> ( usize, Option<usize> ) { ( self.len, Some( self.len ))}
 }
 
+impl<'a,T> ExactSizeIterator for Iter<'a, T> {}
+impl<'a,T> FusedIterator for Iter<'a, T> {}
+
 impl<'a, T:'a> Iter<'a, T> {
     #[inline] pub(crate) fn new( head: *const Link, tail: *const Link, len: usize ) -> Self {
         Iter{ head, tail, len, mark: PhantomData }
@@ -47,10 +50,6 @@ impl<'a, T> Clone for Iter<'a, T> {
         Iter { ..*self }
     }
 }
-
-impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
-
-impl<'a, T> FusedIterator for Iter<'a, T> {}
 
 /// A mutable iterator over the sub `Node`s of a `Node` or `Forest`.
 ///
@@ -87,15 +86,14 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
     #[inline] fn size_hint( &self ) -> ( usize, Option<usize> ) { ( self.len, Some( self.len ))}
 }
 
+impl<'a,T> ExactSizeIterator for IterMut<'a, T> {}
+impl<'a, T> FusedIterator for IterMut<'a, T> {}
+
 impl<'a, T:'a> IterMut<'a, T> {
     #[inline] pub(crate) fn new( head: *mut Link, tail: *mut Link, len: usize ) -> Self {
         IterMut{ head, tail, len, mark: PhantomData }
     }
 }
-
-impl<'a, T> ExactSizeIterator for IterMut<'a, T> {}
-
-impl<'a, T> FusedIterator for IterMut<'a, T> {}
 
 unsafe impl<'a, T:Sync> Send for Iter<'a, T> {}
 unsafe impl<'a, T:Sync> Sync for Iter<'a, T> {}

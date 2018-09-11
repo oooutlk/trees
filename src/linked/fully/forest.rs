@@ -370,35 +370,21 @@ impl<T> Forest<T> {
     /// use trees::linked::fully::{tr,fr};
     ///
     /// let forest = fr::<i32>();
-    /// let visits = forest.bfs_into_iter().collect::<Vec<_>>();
+    /// let visits = forest.into_bfs().iter().collect::<Vec<_>>();
     /// assert!( visits.is_empty() );
     ///
     /// let forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
-    /// let visits = forest.bfs_into_iter().collect::<Vec<_>>();
+    /// let visits = forest.into_bfs().iter().collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit::Data(1),
-    ///     bfs::Visit::Data(4),
-    ///     bfs::Visit::GenerationEnd,
-    ///     bfs::Visit::Data(2),
-    ///     bfs::Visit::Data(3),
-    ///     bfs::Visit::SiblingsEnd,
-    ///     bfs::Visit::Data(5),
-    ///     bfs::Visit::Data(6),
-    ///     bfs::Visit::GenerationEnd,
+    ///     bfs::Visit{ data: 1, degree: 2 },
+    ///     bfs::Visit{ data: 4, degree: 2 },
+    ///     bfs::Visit{ data: 2, degree: 0 },
+    ///     bfs::Visit{ data: 3, degree: 0 },
+    ///     bfs::Visit{ data: 5, degree: 0 },
+    ///     bfs::Visit{ data: 6, degree: 0 },
     /// ]);
     /// ```
-    pub fn bfs_into_iter( self ) -> bfs::BfsIter<T,IntoIter<T>> { bfs::BfsIter::from( self, 1 )}
-}
-
-impl<T> bfs::Split<T,Tree<T>,IntoIter<T>> for Forest<T> {
-    fn split( self ) -> ( Option<T>, Option<IntoIter<T>> ) {
-        let iter = if self.is_empty() {
-            None
-        } else {
-            Some( self.into_iter() )
-        };
-        ( None, iter )
-    }
+    pub fn into_bfs( self ) -> bfs::Bfs<IntoIter<T>> { bfs::Bfs::from_forest( self.link.size.degree as usize, self )}
 }
 
 impl<T:Clone> Clone for Forest<T> {
@@ -420,15 +406,21 @@ impl<T> Drop for Forest<T> {
 }
 
 pub struct IntoIter<T> {
-    forest : Forest<T>,
-    marker : PhantomData<Tree<T>>,
+    pub(crate) forest : Forest<T>,
+    pub(crate) marker : PhantomData<Tree<T>>,
 }
 
 impl<T> Iterator for IntoIter<T> {
     type Item = Tree<T>;
 
     #[inline] fn next( &mut self ) -> Option<Tree<T>> { self.forest.pop_front() }
+    #[inline] fn size_hint( &self ) -> ( usize, Option<usize> ) {
+        let degree = self.forest.link.size.degree as usize;
+        ( degree, Some( degree ) )
+    }
 }
+
+impl<T> ExactSizeIterator for IntoIter<T> {}
 
 impl<T> IntoIterator for Forest<T> {
     type Item = Tree<T>;

@@ -225,6 +225,7 @@ mod rust {
     #[cfg(not(feature="no_std"))] extern crate core;
     #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,BorrowMut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::boxed::Box;
+    #[cfg(not(feature="no_std"))] pub(crate) use std::collections::VecDeque;
     #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::{self,*};
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt;
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{Debug,Display,Formatter};
@@ -239,6 +240,7 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::vec::Vec;
+    #[cfg(feature="no_std")] pub(crate) use core::collections::VecDeque;
     #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::{self,*};
     #[cfg(feature="no_std")] pub(crate) use core::fmt;
     #[cfg(feature="no_std")] pub(crate) use core::fmt::{Debug,Display,Formatter};

@@ -30,7 +30,24 @@ impl<'a, T:'a> Iterator for Iter<'a, T> {
             Some( &*( node as *mut Node<T> ))
         }}
     }
+
+    #[inline] fn size_hint( &self ) -> ( usize, Option<usize> ) {
+        if self.head.is_null() {
+            ( 0, Some(0) )
+        } else {
+            let mut len = 1_usize;
+            let mut head = self.head;
+            while head != self.tail {
+                unsafe{ head = (*head).next; }
+                len += 1;
+            }
+            ( len, Some( len ))
+        }
+    }
 }
+
+impl<'a,T> ExactSizeIterator for Iter<'a, T> {}
+impl<'a,T> FusedIterator for Iter<'a, T> {}
 
 impl<'a, T:'a> Iter<'a, T> {
     #[inline] pub(crate) fn new( head: *const Link, tail: *const Link ) -> Self {
@@ -73,7 +90,24 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
             Some( &mut *( node as *mut Node<T> ))
         }}
     }
+
+    #[inline] fn size_hint( &self ) -> ( usize, Option<usize> ) {
+        if self.head.is_null() {
+            ( 0, Some(0) )
+        } else {
+            let mut len = 1_usize;
+            let mut head = self.head;
+            while head != self.tail {
+                unsafe{ head = (*head).next; }
+                len += 1;
+            }
+            ( len, Some( len ))
+        }
+    }
 }
+
+impl<'a,T> ExactSizeIterator for IterMut<'a, T> {}
+impl<'a,T> FusedIterator for IterMut<'a, T> {}
 
 impl<'a, T:'a> IterMut<'a, T> {
     #[inline] pub(crate) fn new( head: *mut Link, tail: *mut Link ) -> Self {

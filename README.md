@@ -78,7 +78,7 @@ Tree, Forest and Node are the big three types in this library.
   }
   ```
 
-  The starting of tree operations are encoded as `-(` and `/(` which are humble enough to let the reader focusing on the data part.
+  The starting of tree operations are denoted by `-(` and `/(` which are humble enough to let the reader focusing on the data part.
 
 - use iterators if the tree travesal is a "driving wheel"( you can iterate over the tree on your own ).
 
