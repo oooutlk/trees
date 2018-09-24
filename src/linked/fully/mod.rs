@@ -25,36 +25,7 @@ pub mod walk;
 pub use self::walk::{Visit,TreeWalk,ForestWalk};
 
 use super::bfs;
-
-#[derive(Copy,Clone)]
-pub struct Size {
-    degree   : u32, // count of children node
-    node_cnt : u32, // count of all nodes, including itself and all its descendants
-}
-
-use ::std::ops::{Add,AddAssign,Sub,SubAssign};
-
-impl Add for Size {
-    type Output = Self;
-    fn add( self, rhs: Self ) -> Self { Size{ degree: self.degree+rhs.degree, node_cnt: self.node_cnt+rhs.node_cnt }}
-}
-
-impl AddAssign for Size {
-    fn add_assign( &mut self, rhs: Self ) {
-        *self = Size{ degree: self.degree+rhs.degree, node_cnt: self.node_cnt+rhs.node_cnt }
-    }
-}
-
-impl Sub for Size {
-    type Output = Self;
-    fn sub( self, rhs: Self ) -> Self { Size{ degree: self.degree-rhs.degree, node_cnt: self.node_cnt-rhs.node_cnt }}
-}
-
-impl SubAssign for Size {
-    fn sub_assign( &mut self, rhs: Self ) {
-        *self = Size{ degree: self.degree-rhs.degree, node_cnt: self.node_cnt-rhs.node_cnt }
-    }
-}
+use super::Size;
 
 #[cfg(test)]
 mod tests {

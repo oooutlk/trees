@@ -11,11 +11,19 @@
 //!
 //! General purpose tree library.
 //!
-//! The current version provides two implementions of heap-allocated, child-sibling linked trees.
-//! The default implementation is [`linked::fully`](linked/fully/index.html),
+//! The current version provides two implementions of heap-allocated, child-sibling linked trees and one implementation of vec-backed tree.
+//!
+//! - The default implementation is [`linked::fully`](linked/fully/index.html),
 //! which stores previous/next sibling and parent/child pointers in one node, with size information tracked.
-//! The alternative is [`linked::singly`](linked/singly/index.html),
+//!
+//! - The alternative linked tree is [`linked::singly`](linked/singly/index.html),
 //! which stores only next sibling and last child pointers in one node, without size information tracked.
+//! The space cost is minimal, but with a few penalties on time cost or lack of function, e.g. linear time `size_hint` of iterators, and missing `pop_back()`.
+//!
+//! - The other alternative using vec as its underlying storage is [`potted`](potted/index.html). 
+//! The memory allocations are minimal, and **trees can be written in Rust tuples**.
+//! Random access over child nodes is supported for tree/forest constructed in batch mode.
+//!
 //! More kinds of trees will be added in the future.
 //!
 //! This crate can be used with or without libstd. 
@@ -35,6 +43,15 @@
 //!     tr(0)
 //!         /( tr(1) /tr(2)/tr(3) )
 //!         /( tr(4) /tr(5)/tr(6) );
+//!     ```
+//!
+//!     The potted version:
+//!     ```rust,no_run
+//!     // the trees written in potted tree, same as described above
+//!     use trees::potted::{Tree,TreeData,TupleTree};
+//!     Tree::from(( 0, ));
+//!     Tree::from(( 0, 1 ));
+//!     Tree::from(( 0, 1, 2 ));
 //!     ```
 //!
 //! 2. `Forest` notation
@@ -57,6 +74,17 @@
 //!         -( tr(1) /( -tr(2)-tr(3) ) )
 //!         -( tr(4) /( -tr(5)-tr(6) ) )
 //!     );
+//!     ```
+//!
+//!     The potted version:
+//!     ```rust,no_run
+//!     // the forests written in potted tree, same as described above
+//!     use trees::potted::{Forest,TreeData,TupleForest,fr};
+//!
+//!     Forest::<i32>::new(); Forest::<i32>::from(( fr(), ));
+//!     Forest::from(( fr(), 1 ));
+//!     Forest::from(( fr(), 1, 2 ));
+//!     Forest::from(( fr(), (1,2,3), (4,5,6) ));
 //!     ```
 //!
 //! 3. `Tree` traversal, using `Node::iter()` recursively
@@ -125,6 +153,19 @@
 //!     assert_eq!( tree, tr(0) );
 //!     ```
 //!
+//!     The potted version:
+//!     ```rust
+//!     // `potted::Forest` cannot be borrowed from `potted::Tree`, and `abandon` is different.
+//!     use trees::potted::{Tree,Forest,TreeData,TupleTree,TupleForest,fr};
+//!
+//!     let mut forest = Forest::from(( fr(), 1, 2, 3 ));
+//!     let mut tree = forest.adopt( 0 );
+//!     assert_eq!( tree.to_string(), "0( 1 2 3 )" );
+//!     let ( root_data, forest ) = tree.abandon();
+//!     assert_eq!( root_data, 0 );
+//!     assert_eq!( forest.to_string(), "( 1 2 3 )" );
+//!     ```
+//!
 //! 2. `Forest` is composed of `Node`s as its children. A forest can be empty.
 //!     ```rust,no_run
 //!     use trees::{tr,fr,Forest};
@@ -134,12 +175,19 @@
 //!     forest.push_back( tr(2) );          // forest has two trees
 //!     ```
 //!
+//!     The potted version:
+//!     ```rust,no_run
+//!     use trees::potted::{Tree,Forest,TreeData,TupleForest};
+//!     let mut forest = Forest::<i32>::new(); // an empty forest
+//!     forest.append_tr(( 1, 2, 3 ));         // forest has three nodes
+//!     ```
+//!
 //! 3. `Node` is a borrowed tree, and `Tree` is an owned `Node`. All nodes in a tree can be referenced as `&Node`, but only the root node can be observed as `Tree` by the user.
 //!     ```rust,no_run
 //!     use trees::{tr,Tree,Node};
 //!     use std::borrow::Borrow;
 //!
-//!     let mut tree: Tree<i32>  = tr(0) /tr(1)/tr(2)/tr(3);
+//!     let mut tree: Tree<i32> = tr(0) /tr(1)/tr(2)/tr(3);
 //!     {
 //!         let root: &Node<i32> = tree.borrow(); // you can also use tree.root()
 //!         let first_child : &Node<i32> = tree.iter().next().unwrap();
@@ -147,6 +195,18 @@
 //!         let third_child : &Node<i32> = tree.iter().last().unwrap();
 //!     }
 //!     let first_child: Tree<i32> = tree.pop_front().unwrap();
+//!     ```
+//!
+//!     The potted version:
+//!     ```rust,no_run
+//!     use trees::potted::{Tree,NodeRef,TreeData,TupleTree};
+//!     let mut tree = Tree::from(( 0, 1, 2, 3 ));
+//!     {
+//!         let root: NodeRef<i32> = tree.root();
+//!         let first_child: NodeRef<i32>  = tree.root().iter().next().unwrap();
+//!         let second_child: NodeRef<i32> = tree.root().nth_child(1).unwrap(); // in nearly constant time.
+//!         let third_child : NodeRef<i32> = tree.root().iter().last().unwrap();
+//!     }
 //!     ```
 //!
 //! ### Iterators
@@ -171,9 +231,13 @@
 //! 
 //!     3.2 do whatever `iter()` or `iter_mut()` can do.
 //! 
+//!     Note that it is not implemented for potted version.
+//! 
 //! 4. Using `Forest::<T>::into_iter()` to iterate over `Tree`s, you can:
 //! 
-//!     do whatever you want to.
+//!     Do whatever you want to.
+//! 
+//!     Note that it is not implemented for potted version.
 //! 
 //! ### Traversal in depth-first manner
 //!
@@ -197,26 +261,60 @@
 //!
 //! 2. `Tree`/`Forest` provides owned iterator `fn bfs_into_iter( self )`.
 //!
+//! 3. potted `Tree`/`Forest` directly supports `From`/`Into` BFS streams.
+//!
 //! ### Panics
 //!
-//! No panics unless `Clone` is involved:
+//! One cause of panics is tree data's `Clone`:
 //! * `Node::<T>::to_owned()`
 //! * `Tree::<T>::clone()`
 //! * `Forest::<T>::clone()`
 //! * all of the operator overloading functions the operands of which contain at least one referenced type.
 //!
-//! Panics if and only if `T::clone()` panics.
+//! Another cause is a few assertions in potted version.
 //!
 //! ### Safety
 //!
 //! Collections of pointer-based tree implementation require many `unsafe`s to do raw pointer dereferences.
-//! Currently this crate contains **150 `unsafe`** lines in its source code.
+//! Currently this crate contains **nearly 200 `unsafe`** blocks in its source code.
+//! This crate relies on lifetime bounds and borrow check to keep memory-safety, in compile time.
+//! The following are some simple demonstrations.
 //!
-//! A node's value is composed of its **`data`** field and the **structure** of its descendant nodes.
-//! So adding/removing/modifying a child of a node are regarded as modifying its value.
-//! And the only possible way to obtain mutable references on a child node is via its parent's mutable reference.
-//! Rust borrow checker guarantees memory safety in safe code, and the author of this crate is responsible for memory safety
-//! inside `Node`s methods which take `&mut self` and contain `unsafe` blocks.
+//! ```compile_fail
+//! use trees::tr;
+//!
+//! let root; // node reference can not live out of tree
+//! {
+//!     let tree = tr(0);
+//!     root = tree.root();
+//! }
+//! ```
+//!
+//! ```compile_fail
+//! use trees::tr;
+//!
+//! let root; // mutable node reference can not live out of tree
+//! {
+//!     let mut tree = tr(0);
+//!     root = tree.root_mut();
+//! }
+//! ```
+//!
+//! ```compile_fail
+//! use trees::tr;
+//!
+//! let mut tree = tr(0) /tr(1);
+//! let child = tree.iter().next();
+//! tree.abandon(); // can not drop sub trees being borrowed
+//! ```
+//!
+//! ```compile_fail
+//! use trees::{Node,tr};
+//!
+//! let mut tree = tr(0) /tr(1);
+//! let child1 = tree.iter_mut().next();
+//! let child2 = tree.iter_mut().next(); // can not have two mutable references on the same node
+//! ```
 
 #![cfg_attr( feature = "no_std", no_std )]
 #![cfg_attr( feature = "no_std", feature( alloc ))]
@@ -232,6 +330,7 @@ mod rust {
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
     #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
+    #[cfg(not(feature="no_std"))] pub(crate) use std::mem;
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Deref,DerefMut,Div,Neg,Sub};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
@@ -247,6 +346,7 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
     #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
+    #[cfg(feature="no_std")] pub(crate) use core::mem;
     #[cfg(feature="no_std")] pub(crate) use core::ops::{Deref,DerefMut,Div,Neg,Sub};
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,null,null_mut};
 }
@@ -254,5 +354,9 @@ mod rust {
 pub mod linked;
 pub use linked::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
 
-//pub mod potted;
+pub mod potted;
+
 pub mod bfs;
+
+pub mod size;
+pub use size::Size;

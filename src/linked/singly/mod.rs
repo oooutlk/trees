@@ -25,6 +25,7 @@ pub mod walk;
 pub use self::walk::{Visit,TreeWalk,ForestWalk};
 
 use super::bfs;
+use super::Size;
 
 #[cfg(test)]
 mod tests {

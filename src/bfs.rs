@@ -1,38 +1,115 @@
 /// breadth first search
 
+use super::Size;
+
 use rust::*;
 
-/// An enum for one visit in breadth first search.
+/// A struct for one visit in breadth first search.
 #[derive(Debug,PartialEq,Eq)]
 pub struct Visit<T> {
-    pub data   : T,
-    pub degree : usize,
+    pub data : T,
+    pub size : Size,
+}
+
+pub struct BfsTree<Iter> {
+    pub iter : Iter,
+    pub size : Size,
+}
+
+impl<Item,Iter> BfsTree<Splitted<Iter>>
+    where Iter: Iterator<Item=Item>
+{
+    pub fn from<Treelike>( treelike: Treelike, size: Size ) -> Self
+        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
+    {
+        Self{ iter: Splitted::<Iter>::from( treelike ), size: size }
+    }
+}
+
+impl<Iter> BfsTree<Iter> {
+    pub fn wrap( self ) -> Bfs<Iter> { Bfs::Tree( self )}
+}
+
+pub struct BfsForest<Iter> {
+    pub iter : Iter,
+    pub size : Size,
+}
+
+impl<Item,Iter> BfsForest<Splitted<Iter>>
+    where Iter: Iterator<Item=Item>
+{
+    pub fn from<Treelike>( treelike: Treelike, size: Size ) -> Self
+        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
+    {
+        Self{ iter: Splitted::<Iter>::from( treelike ), size: size }
+    }
+}
+
+impl<Iter> BfsForest<Iter> {
+    pub fn wrap( self ) -> Bfs<Iter> { Bfs::Forest( self )}
+}
+
+pub enum Bfs<Iter> {
+    Tree(   BfsTree  <Iter> ),
+    Forest( BfsForest<Iter> ),
+}
+
+impl<T,Iter> Bfs<Iter>
+    where Iter: Iterator<Item=Visit<T>>
+{
+    pub fn iter( self ) -> Iter {
+        match self {
+            Bfs::Tree(   tree   ) => tree.iter,
+            Bfs::Forest( forest ) => forest.iter,
+        }
+    }
+
+    pub fn iter_and_size( self ) -> ( Iter, Size ) {
+        match self {
+            Bfs::Tree(   tree   ) => (tree.iter,   tree.size),
+            Bfs::Forest( forest ) => (forest.iter, forest.size),
+        }
+    }
+
+    pub fn tree_iter( self ) -> Option<Iter> {
+        match self {
+            Bfs::Tree( tree ) => Some( tree.iter ),
+            _ => None,
+        }
+    }
+
+    pub fn forest_iter( self ) -> Option<Iter> {
+        match self {
+            Bfs::Forest( forest ) => Some( forest.iter ),
+            _ => None,
+        }
+    }
 }
 
 pub trait Split {
     type Item;
     type Iter: ExactSizeIterator;
 
-    fn split( self ) -> ( Self::Item, Self::Iter );
+    fn split( self ) -> ( Self::Item, Self::Iter, u32 );
 }
 
 /// An iterator in breadth-first manner
-pub struct BfsIter<Iter> {
-    iters : VecDeque<Iter>,
+pub struct Splitted<Iter> {
+    pub(crate) iters : VecDeque<Iter>,
 }
 
-impl<Treelike,Item,Iter> From<Treelike> for BfsIter<Iter>
+impl<Treelike,Item,Iter> From<Treelike> for Splitted<Iter>
     where Treelike : IntoIterator<Item=Item,IntoIter=Iter>
         ,     Iter : Iterator<Item=Item>
 {
     fn from( treelike: Treelike ) -> Self {
         let mut iters = VecDeque::new();
         iters.push_back( treelike.into_iter() );
-        BfsIter{ iters }
+        Splitted{ iters }
     }
 }
 
-impl<T,Item,Iter> Iterator for BfsIter<Iter>
+impl<T,Item,Iter> Iterator for Splitted<Iter>
     where Iter : ExactSizeIterator<Item=Item>
         , Item : Split<Iter=Iter,Item=T>
 {
@@ -47,10 +124,10 @@ impl<T,Item,Iter> Iterator for BfsIter<Iter>
                     return None;
                 };
             if let Some( item ) = next_item {
-                let ( data, iter ) = item.split();
+                let ( data, iter, node_cnt ) = item.split();
                 let degree = iter.len();
                 self.iters.push_back( iter );
-                return Some( Visit{ data, degree });
+                return Some( Visit{ data, size: Size{ degree: degree as u32, node_cnt }});
             } else {
                 self.iters.pop_front();
             }
@@ -58,37 +135,18 @@ impl<T,Item,Iter> Iterator for BfsIter<Iter>
     }
 }
 
-pub struct BfsOnTree<Iter> { pub iter: BfsIter<Iter> }
+pub struct Moved<Iter>( pub(crate) Iter );
 
-pub struct BfsOnForest<Iter> {
-    pub degree : usize,
-    pub iter   : BfsIter<Iter>,
-}
-
-pub enum Bfs<Iter> {
-    OnTree( BfsOnTree<Iter> ),
-    OnForest( BfsOnForest<Iter> ),
-}
-
-impl<Item,Iter> Bfs<Iter>
-    where Iter: Iterator<Item=Item>
+impl<'a,T,Iter> Iterator for Moved<Iter>
+    where Iter : Iterator<Item=Visit<&'a T>>
+        , T    : 'a
 {
-    pub fn from_tree<Treelike>( treelike: Treelike ) -> Self
-        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
-    {
-        Bfs::OnTree( BfsOnTree{ iter: BfsIter::<Iter>::from( treelike )})
-    }
+    type Item = Visit<T>;
 
-    pub fn from_forest<Treelike>( degree: usize, treelike: Treelike ) -> Self
-        where Treelike: IntoIterator<Item=Item,IntoIter=Iter>
-    {
-        Bfs::OnForest( BfsOnForest{ degree, iter: BfsIter::<Iter>::from( treelike )})
-    }
-
-    pub fn iter( self ) -> BfsIter<Iter> {
-        match self {
-            Bfs::OnTree(   on_tree   ) => on_tree.iter,
-            Bfs::OnForest( on_forest ) => on_forest.iter,
-        }
+    fn next( &mut self ) -> Option<Visit<T>> {
+        self.0.next().map( |item| Visit {
+            data : unsafe{ ptr::read( item.data )},
+            size : item.size,
+        })
     }
 }

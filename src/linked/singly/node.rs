@@ -1,7 +1,7 @@
 //! Tree node implementation.
 
-use super::{Tree,Forest,Iter,IterMut,OntoIter};
-use super::bfs;
+use super::{Tree,Forest,Iter,IterMut,OntoIter,Size};
+use super::bfs::{BfsTree,Splitted,Split};
 use rust::*;
 
 pub struct Link {
@@ -138,7 +138,7 @@ impl<T> Node<T> {
         tree.clear();
     }
 
-    /// add the tree as the last child
+    /// Add the tree as the last child
     ///
     /// # Examples
     ///
@@ -162,7 +162,7 @@ impl<T> Node<T> {
         tree.clear();
     }
 
-    /// remove and return the first child
+    /// Remove and return the first child
     ///
     /// # Examples
     ///
@@ -190,7 +190,7 @@ impl<T> Node<T> {
 
     }
 
-    /// add all the forest's trees at front of children list
+    /// Add all the forest's trees at front of children list
     ///
     /// # Examples
     ///
@@ -215,7 +215,7 @@ impl<T> Node<T> {
         }
     }
 
-    /// add all the forest's trees at back of children list
+    /// Add all the forest's trees at back of children list
     ///
     /// # Examples
     ///
@@ -258,7 +258,7 @@ impl<T> Node<T> {
     /// assert_eq!( iter.next(), None );
     /// assert_eq!( iter.next(), None );
     /// ```
-    #[inline] pub fn iter<'a>( &self ) -> Iter<'a,T> {
+    #[inline] pub fn iter<'a, 's:'a>( &'s self ) -> Iter<'a,T> {
         if self.is_leaf() {
             Iter::new( null(), null() )
         } else { unsafe {
@@ -280,7 +280,7 @@ impl<T> Node<T> {
     /// for child in tree.iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
     /// ```
-    #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {
+    #[inline] pub fn iter_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> {
         if self.is_leaf() {
             IterMut::new( null_mut(), null_mut() )
         } else { unsafe {
@@ -290,7 +290,7 @@ impl<T> Node<T> {
 
     /// Provide an iterator over `Node`'s `Subnode`s for insert/remove at any position.
     /// See `Subnode`'s document for more.
-    #[inline] pub fn onto_iter<'a>( &mut self ) -> OntoIter<'a,T> {
+    #[inline] pub fn onto_iter<'a, 's:'a>( &'s mut self ) -> OntoIter<'a,T> {
         unsafe {
             if self.is_leaf() {
                 OntoIter {
@@ -316,61 +316,61 @@ impl<T> Node<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bfs;
+    /// use trees::{bfs,Size};
     /// use trees::linked::singly::tr;
     ///
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.root().bfs().iter().collect::<Vec<_>>();
+    /// let visits = tree.root().bfs().iter.collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: &0, degree: 2 },
-    ///     bfs::Visit{ data: &1, degree: 2 },
-    ///     bfs::Visit{ data: &4, degree: 2 },
-    ///     bfs::Visit{ data: &2, degree: 0 },
-    ///     bfs::Visit{ data: &3, degree: 0 },
-    ///     bfs::Visit{ data: &5, degree: 0 },
-    ///     bfs::Visit{ data: &6, degree: 0 },
+    ///     bfs::Visit{ data: &0, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &1, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &4, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &2, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &3, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &5, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &6, size: Size{ degree: 0, node_cnt: 0 }},
     /// ]);
     /// ```
-    pub fn bfs( &self ) -> bfs::Bfs<Iter<T>> { bfs::Bfs::from_tree( self )}
+    pub fn bfs( &self ) -> BfsTree<Splitted<Iter<T>>> { BfsTree::from( self, Size{ degree:1, node_cnt:0 })}
 
     /// Provides a forward iterator with mutable references in a breadth-first manner
     ///
     /// # Examples
     ///
     /// ```
-    /// use trees::bfs;
+    /// use trees::{bfs,Size};
     /// use trees::linked::singly::tr;
     ///
     /// let mut tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.root_mut().bfs_mut().iter().collect::<Vec<_>>();
+    /// let visits = tree.root_mut().bfs_mut().iter.collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: &mut 0, degree: 2 },
-    ///     bfs::Visit{ data: &mut 1, degree: 2 },
-    ///     bfs::Visit{ data: &mut 4, degree: 2 },
-    ///     bfs::Visit{ data: &mut 2, degree: 0 },
-    ///     bfs::Visit{ data: &mut 3, degree: 0 },
-    ///     bfs::Visit{ data: &mut 5, degree: 0 },
-    ///     bfs::Visit{ data: &mut 6, degree: 0 },
+    ///     bfs::Visit{ data: &mut 0, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 1, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 4, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 2, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 3, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 5, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 6, size: Size{ degree: 0, node_cnt: 0 }},
     /// ]);
     /// ```
-    pub fn bfs_mut( &mut self ) -> bfs::Bfs<IterMut<T>> { bfs::Bfs::from_tree( self )}
+    pub fn bfs_mut( &mut self ) -> BfsTree<Splitted<IterMut<T>>> { BfsTree::from( self, Size{ degree:1, node_cnt:0 })}
 }
 
-impl<'a, T:'a> bfs::Split for &'a Node<T> {
+impl<'a, T:'a> Split for &'a Node<T> {
     type Item = &'a T;
     type Iter = Iter<'a,T>;
 
-    fn split( self ) -> ( &'a T, Iter<'a,T> ) {
-        ( &self.data, self.iter() )
+    fn split( self ) -> ( &'a T, Iter<'a,T>, u32 ) {
+        ( &self.data, self.iter(), 0 )
     }
 }
 
-impl<'a, T:'a> bfs::Split for &'a mut Node<T> {
+impl<'a, T:'a> Split for &'a mut Node<T> {
     type Item = &'a mut T;
     type Iter = IterMut<'a,T>;
 
-    fn split( self ) -> ( &'a mut T, IterMut<'a,T> ) {
-        unsafe{ ( &mut *( &mut self.data as *mut T ), self.iter_mut() )}
+    fn split( self ) -> ( &'a mut T, IterMut<'a,T>, u32 ) {
+        unsafe{ ( &mut *( &mut self.data as *mut T ), self.iter_mut(), 0 )} // borrow two mutable references at one time
     }
 }
 

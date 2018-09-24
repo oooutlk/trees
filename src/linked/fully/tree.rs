@@ -1,7 +1,8 @@
 //! `Tree` composed of hierarchical `Node`s.
 
 use super::{Node,Link,Forest};
-use super::{heap,bfs};
+use super::{heap,Size};
+use super::bfs::{BfsTree,Splitted,Split};
 use super::forest::IntoIter;
 use rust::*;
 
@@ -47,34 +48,38 @@ impl<T> Tree<T> {
     /// # Examples
     ///
     /// ```
-    /// use trees::bfs;
+    /// use trees::{bfs,Size};
     /// use trees::linked::fully::tr;
     ///
     /// let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.into_bfs().iter().collect::<Vec<_>>();
+    /// let visits = tree.into_bfs().iter.collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: 0, degree: 2 },
-    ///     bfs::Visit{ data: 1, degree: 2 },
-    ///     bfs::Visit{ data: 4, degree: 2 },
-    ///     bfs::Visit{ data: 2, degree: 0 },
-    ///     bfs::Visit{ data: 3, degree: 0 },
-    ///     bfs::Visit{ data: 5, degree: 0 },
-    ///     bfs::Visit{ data: 6, degree: 0 },
+    ///     bfs::Visit{ data: 0, size: Size{ degree: 2, node_cnt: 7 }},
+    ///     bfs::Visit{ data: 1, size: Size{ degree: 2, node_cnt: 3 }},
+    ///     bfs::Visit{ data: 4, size: Size{ degree: 2, node_cnt: 3 }},
+    ///     bfs::Visit{ data: 2, size: Size{ degree: 0, node_cnt: 1 }},
+    ///     bfs::Visit{ data: 3, size: Size{ degree: 0, node_cnt: 1 }},
+    ///     bfs::Visit{ data: 5, size: Size{ degree: 0, node_cnt: 1 }},
+    ///     bfs::Visit{ data: 6, size: Size{ degree: 0, node_cnt: 1 }},
     /// ]);
     /// ```
-    pub fn into_bfs( self ) -> bfs::Bfs<IntoIter<T>> { bfs::Bfs::from_tree( self )}
+    pub fn into_bfs( self ) -> BfsTree<Splitted<IntoIter<T>>> {
+        let size = Size{ degree: 1, node_cnt: self.root().link.size.node_cnt };
+        BfsTree::from( self, size )
+    }
 
     #[inline] pub(crate) fn from( root: *mut Link ) -> Self { Tree{ root: root as *mut Node<T>, mark: PhantomData }}
     #[inline] pub(crate) fn clear( mut self ) { self.root = null_mut(); }
 }
 
-impl<T> bfs::Split for Tree<T> {
+impl<T> Split for Tree<T> {
     type Item = T;
     type Iter = IntoIter<T>;
 
-    fn split( mut self ) -> ( T, IntoIter<T> ) {
+    fn split( mut self ) -> ( T, IntoIter<T>, u32 ) {
+        let node_cnt = self.root().link.size.node_cnt;
         let iter = self.abandon().into_iter();
-        ( self.into_data(), iter )
+        ( self.into_data(), iter, node_cnt )
     }
 }
 

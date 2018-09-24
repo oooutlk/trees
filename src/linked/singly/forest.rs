@@ -1,7 +1,7 @@
 //! `Forest` composed of disjoint `Tree`s.
 
-use super::{Node,Link,Tree,Iter,IterMut,OntoIter};
-use super::bfs;
+use super::{Node,Link,Tree,Iter,IterMut,OntoIter,Size};
+use super::bfs::{BfsForest,Splitted};
 use rust::*;
 
 /// A nullable forest
@@ -282,30 +282,95 @@ impl<T> Forest<T> {
         }
     }
 
+    /// Provides a forward iterator in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::{bfs,Size};
+    /// use trees::linked::singly::{tr,fr};
+    ///
+    /// let forest = fr::<i32>();
+    /// let visits = forest.bfs().iter.collect::<Vec<_>>();
+    /// assert!( visits.is_empty() );
+    ///
+    /// let forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
+    /// let visits = forest.bfs().iter.collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit{ data: &1, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &4, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &2, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &3, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &5, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &6, size: Size{ degree: 0, node_cnt: 0 }},
+    /// ]);
+    /// ```
+    pub fn bfs<'a, 's:'a>( &'s self ) -> BfsForest<Splitted<Iter<'a,T>>> {
+        let size = Size{ degree: self.iter().count() as u32, node_cnt: 0 };
+        let mut iters = VecDeque::new();
+        iters.push_back( self.iter() );
+        let iter = Splitted{ iters };
+        BfsForest{ iter, size }
+    }
+
+    /// Provides a forward iterator with mutable references in a breadth-first manner
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use trees::{bfs,Size};
+    /// use trees::linked::singly::{tr,fr};
+    ///
+    /// let mut forest = fr::<i32>();
+    /// let visits = forest.bfs_mut().iter.collect::<Vec<_>>();
+    /// assert!( visits.is_empty() );
+    ///
+    /// let mut forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
+    /// let visits = forest.bfs_mut().iter.collect::<Vec<_>>();
+    /// assert_eq!( visits, vec![
+    ///     bfs::Visit{ data: &mut 1, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 4, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 2, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 3, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 5, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: &mut 6, size: Size{ degree: 0, node_cnt: 0 }},
+    /// ]);
+    /// ```
+    pub fn bfs_mut<'a, 's:'a>( &'s mut self ) -> BfsForest<Splitted<IterMut<'a,T>>> {
+        let size = Size{ degree: self.iter().count() as u32, node_cnt: 0 };
+        let mut iters = VecDeque::new();
+        iters.push_back( self.iter_mut() );
+        let iter = Splitted{ iters };
+        BfsForest{ iter, size }
+    }
+
     /// Provides a forward iterator with owned data in a breadth-first manner
     ///
     /// # Examples
     ///
     /// ```
-    /// use trees::bfs;
+    /// use trees::{bfs,Size};
     /// use trees::linked::singly::{tr,fr};
     ///
     /// let forest = fr::<i32>();
-    /// let visits = forest.into_bfs().iter().collect::<Vec<_>>();
+    /// let visits = forest.into_bfs().iter.collect::<Vec<_>>();
     /// assert!( visits.is_empty() );
     ///
     /// let forest = -( tr(1)/tr(2)/tr(3) ) -( tr(4)/tr(5)/tr(6) );
-    /// let visits = forest.into_bfs().iter().collect::<Vec<_>>();
+    /// let visits = forest.into_bfs().iter.collect::<Vec<_>>();
     /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: 1, degree: 2 },
-    ///     bfs::Visit{ data: 4, degree: 2 },
-    ///     bfs::Visit{ data: 2, degree: 0 },
-    ///     bfs::Visit{ data: 3, degree: 0 },
-    ///     bfs::Visit{ data: 5, degree: 0 },
-    ///     bfs::Visit{ data: 6, degree: 0 },
+    ///     bfs::Visit{ data: 1, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: 4, size: Size{ degree: 2, node_cnt: 0 }},
+    ///     bfs::Visit{ data: 2, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: 3, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: 5, size: Size{ degree: 0, node_cnt: 0 }},
+    ///     bfs::Visit{ data: 6, size: Size{ degree: 0, node_cnt: 0 }},
     /// ]);
     /// ```
-    pub fn into_bfs( self ) -> bfs::Bfs<IntoIter<T>> { bfs::Bfs::from_forest( self.iter().count(), self )}
+    pub fn into_bfs( self ) -> BfsForest<Splitted<IntoIter<T>>> {
+        let size = Size{ degree: self.iter().count() as u32, node_cnt: 0 };
+        BfsForest::from( self, size )
+    }
 }
 
 impl<T:Clone> Clone for Forest<T> {
@@ -339,6 +404,12 @@ impl<T> Iterator for IntoIter<T> {
 }
 
 impl<T> ExactSizeIterator for IntoIter<T> {}
+
+impl<T> Drop for IntoIter<T> {
+    fn drop( &mut self ) {
+        for _ in self.by_ref() {}
+    }
+}
 
 impl<T> IntoIterator for Forest<T> {
     type Item = Tree<T>;
