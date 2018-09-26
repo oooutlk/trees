@@ -31,7 +31,7 @@ impl<T> Pot<T> {
         unsafe{ self.nodes.set_len( len + node_cnt ); }
     }
 
-    // unsafe version of push_back, no update on parent's `degree` or propagation of `node_cnt`
+    // unsafe push_back, no update on parent's `degree` or propagation of `node_cnt`
     #[inline] pub(crate) fn gather( &mut self, parent: usize, child: usize, data: T, size: Size ) {
         let mut node = Node {
             next     : child as u32,
@@ -92,6 +92,22 @@ impl<T> Pot<T> {
 
     #[inline] pub(crate) fn next( &self, index: usize ) -> usize { self.nodes[ index ].next as usize }
 
+    // get the true next sib node, with "forest node" in mind.
+    #[allow(dead_code)]
+    #[inline]
+    pub(crate) fn next_sib( &self, index: usize ) -> usize {
+        let parent = self.parent( index );
+        if parent.is_null() || !self.is_forest( parent ) { // it is inside a normal node
+            self.next( index )
+        } else { // it is inside a forest node
+            if index == self.tail( parent ) {
+                self.next( parent )
+            } else {
+                self.next( index )
+            }
+        }
+    }
+
     #[inline] pub(crate) fn adjoined( &self, index: usize )-> usize { self.nodes[ index ].adjoined as usize }
 
     #[inline] pub(crate) fn data<'s>( &'s self, index: usize ) -> &'s T { &self.nodes[ index ].data }
@@ -122,7 +138,7 @@ impl<T> Pot<T> {
         if self.tail( index ).is_null() {
             usize::null()
         } else {
-            self.nodes[ self.tail( index ) ].next()
+            self.nodes[ self.tail( index ) ].next() // forest is ok to be head as long as all calls of head() is for modifying structure rather than finding a node.
         }
     }
 

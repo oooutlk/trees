@@ -204,7 +204,7 @@
 //!     {
 //!         let root: NodeRef<i32> = tree.root();
 //!         let first_child: NodeRef<i32>  = tree.root().iter().next().unwrap();
-//!         let second_child: NodeRef<i32> = tree.root().nth_child(1).unwrap(); // in nearly constant time.
+//!         let second_child: NodeRef<i32> = tree.root().nth_child(1).unwrap(); // `nth_child()` is in constant time.
 //!         let third_child : NodeRef<i32> = tree.root().iter().last().unwrap();
 //!     }
 //!     ```
@@ -221,7 +221,9 @@
 //! 
 //! 2. Using `iter_mut()` to iterate over referenced child `Node`s, you can:
 //! 
-//!     2.1 read/write the data associated with each node, or `prepend()`, `append`, `abandon()`, `push_front()`, `pop_front()`, `push_back()` child node(s) in constant time.
+//!     2.1 read/write the data associated with each node, or `prepend()`, `append`, `abandon()`, `push_front()`, `pop_front()`, `push_back()`, `pop_back()` child node(s) in constant time.
+//!
+//!     Note that `linked::singly` does not have `pop_back()`, and `potted` tree/forest's methods are different in names and/or functionalities.
 //! 
 //!     2.2 use `iter_mut()` to iterate over children's children, etc.
 //! 
@@ -247,6 +249,8 @@
 //!
 //! 2. visit `Node`s irregularly, unlike the iterators mentioned above that are usually called intensively.
 //! 
+//! Note that it is not implemented yet for potted version.
+//!
 //! ### Resource management
 //!
 //! 1. `Tree`/`Forest` will recursively destruct all the nodes owned by them when reaching the end of their lifetimes.
@@ -261,7 +265,7 @@
 //!
 //! 2. `Tree`/`Forest` provides owned iterator `fn bfs_into_iter( self )`.
 //!
-//! 3. potted `Tree`/`Forest` directly supports `From`/`Into` BFS streams.
+//! 3. All version of `Tree`/`Forest`/`Node` support `Into` BFS streams, while potted version supports `From` BFS streams also.
 //!
 //! ### Panics
 //!
@@ -271,7 +275,7 @@
 //! * `Forest::<T>::clone()`
 //! * all of the operator overloading functions the operands of which contain at least one referenced type.
 //!
-//! Another cause is a few assertions in potted version.
+//! A few assertions in potted version can also cause panics.
 //!
 //! ### Safety
 //!
@@ -283,7 +287,7 @@
 //! ```compile_fail
 //! use trees::tr;
 //!
-//! let root; // node reference can not live out of tree
+//! let root; // node reference can not live longer than tree
 //! {
 //!     let tree = tr(0);
 //!     root = tree.root();
@@ -293,7 +297,7 @@
 //! ```compile_fail
 //! use trees::tr;
 //!
-//! let root; // mutable node reference can not live out of tree
+//! let root; // mutable node reference can not longer than tree
 //! {
 //!     let mut tree = tr(0);
 //!     root = tree.root_mut();

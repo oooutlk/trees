@@ -348,13 +348,11 @@ impl<'a, T:'a> NodeMut<'a,T> {
         }
     }
 
-    fn clone( &self ) -> Self { Self{ ..*self }}
-
     fn drop_data_recursively( &self ) {
-        for child in self.clone().iter_mut() {
+        for child in self.iter_mut() {
             child.drop_data_recursively();
         }
-        unsafe{ ptr::drop_in_place( self.clone().data_mut() )}
+        unsafe{ ptr::drop_in_place( self.data_mut() )}
     }
 
     pub(crate) fn drop_all_data_if_needed( &self ) {

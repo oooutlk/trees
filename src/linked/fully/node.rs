@@ -369,6 +369,15 @@ impl<T> Node<T> {
         }}
     }
 
+    #[deprecated( since="0.2.0", note="please use `iter` instead" )]
+    #[inline] pub fn children<'a, 's:'a>( &'s self ) -> Iter<'a,T> {
+        if self.is_leaf() {
+            Iter::new( null(), null(), 0 )
+        } else { unsafe {
+            Iter::new( self.head(), self.tail(), self.size.degree as usize )
+        }}
+    }
+
     /// Provides a forward iterator over child `Node`s with mutable references.
     ///
     /// # Examples
@@ -384,6 +393,15 @@ impl<T> Node<T> {
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
     /// ```
     #[inline] pub fn iter_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> {
+        if self.is_leaf() {
+            IterMut::new( null_mut(), null_mut(), 0 )
+        } else { unsafe {
+            IterMut::new( self.head(), self.tail(), self.size.degree as usize )
+        }}
+    }
+
+   #[deprecated( since="0.2.0", note="please use `iter_mut` instead" )]
+     #[inline] pub fn children_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> {
         if self.is_leaf() {
             IterMut::new( null_mut(), null_mut(), 0 )
         } else { unsafe {

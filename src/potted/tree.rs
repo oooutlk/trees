@@ -1,9 +1,10 @@
-use super::{Pot,Forest,NodeRef,NodeMut,MovedNodes,Iter,TupleTree,TupleForest,Index};
+use super::{Pot,Forest,NodeRef,NodeMut,MovedNodes,Iter,IterMut,TupleTree,TupleForest,Index};
 
 use super::bfs::{Bfs,BfsTree,Splitted,Visit,Moved};
 
 use rust::*;
 
+#[derive(Debug)]
 pub struct Tree<T> {
     pub(crate) pot : Pot<T>,
 }
@@ -71,6 +72,9 @@ impl<T> Tree<T> {
         BfsTree{ iter, size }
     }
 
+    pub fn iter<'a, 's:'a>( &'s self ) -> Iter<'a,T> { self.root().iter() }
+    pub fn iter_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> { self.root_mut().iter_mut() }
+
     pub fn prepend_tr<Tr>( &mut self, tuple: Tr ) where Tr: TupleTree<Data=T> { self.root_mut().prepend_tr( tuple ); }
     pub fn append_tr<Tr>( &mut self, tuple: Tr ) where Tr: TupleTree<Data=T> { self.root_mut().append_tr( tuple ); }
     pub fn insert_tr<Tuple>( &mut self, nth: usize, tuple: Tuple ) where Tuple: TupleTree<Data=T> { self.root_mut().insert_tr( nth, tuple ); }
@@ -112,6 +116,7 @@ impl<T> Drop for Tree<T> {
     fn drop( &mut self ) {
         if !self.pot.nodes.is_empty() {
             self.root_mut().drop_all_data_if_needed();
+            unsafe{ self.pot.nodes.set_len(0); }
         }
     }
 }

@@ -316,6 +316,15 @@ impl<T> Forest<T> {
         }}
     }
 
+    #[deprecated( since="0.2.0", note="please use `iter` instead" )]
+    #[inline] pub fn children<'a>( &self ) -> Iter<'a,T> {
+        if self.is_empty() {
+            Iter::new( null(), null(), 0 )
+        } else { unsafe {
+            Iter::new( self.head(), self.tail(), self.size.degree as usize )
+        }}
+    }
+
     /// Provides a forward iterator over child `Node`s with mutable references.
     ///
     /// # Examples
@@ -331,6 +340,15 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.to_string(), "( 10 20 )" );
     /// ```
     #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {
+        if self.is_empty() {
+            IterMut::new( null_mut(), null_mut(), 0 )
+        } else { unsafe {
+            IterMut::new( self.head(), self.tail(), self.size.degree as usize )
+        }}
+    }
+
+    #[deprecated( since="0.2.0", note="please use `iter_mut` instead" )]
+    #[inline] pub fn children_mut<'a>( &mut self ) -> IterMut<'a,T> {
         if self.is_empty() {
             IterMut::new( null_mut(), null_mut(), 0 )
         } else { unsafe {

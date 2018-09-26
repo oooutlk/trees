@@ -4,6 +4,7 @@ use super::bfs::{Bfs,BfsForest,Splitted,Moved,Visit};
 
 use rust::*;
 
+#[derive(Debug)]
 pub struct Forest<T> {
     pub(crate) pot : Pot<T>,
 }
@@ -223,6 +224,7 @@ impl<T> Drop for Forest<T> {
     fn drop( &mut self ) {
         if !self.pot.nodes.is_empty() {
             self.iter_mut().for_each( |node| node.drop_all_data_if_needed() );
+            unsafe{ self.pot.nodes.set_len(0); }
         }
     }
 }

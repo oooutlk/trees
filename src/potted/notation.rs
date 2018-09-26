@@ -2,6 +2,7 @@ use super::{Pot,Size};
 
 use rust::*;
 
+/// mark trait for types to be the data type of the tree/forest.
 pub trait TreeData: Sized {}
 
 macro_rules! primitive_impls {

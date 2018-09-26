@@ -3,6 +3,8 @@
 //! Some interesting features of the potted trees are:
 //!
 //! 1. They can be written in the form of Rust tuple.
+//!   Only the tuples composed of no more than a limited fields (now 32) are supported due to the lack of variadic generics in current Rust.
+//!   And the library user is required to impl the mark trait `TreeData` for the type other than primitives or strings to be the data type of the tree.
 //!
 //! 2. The child nodes can be randomly accessed in constant time, as long as the tree/forest is constructed in batch mode, and do few modifications after that.
 //!

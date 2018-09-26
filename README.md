@@ -4,7 +4,7 @@ This project provides various implementations of trees serving for general purpo
 
 - Traversal
 
-  Each node in a tree provides standard forward iterators for visiting its children nodes. Tree traversal can be done via using these iterators in recursive function calls.
+  Each node in a tree provides standard forward iterators for visiting its children nodes. Tree traversal can be done using these iterators in recursive function calls.
 
   Depth-first search and breadth-first iterators are also provided.
 
@@ -13,22 +13,34 @@ This project provides various implementations of trees serving for general purpo
 
   The methods for adding or removing child tree at the front/back of a node’s children list are guaranteed constant time. Accessing, inserting or removing nodes in any position are linear time.
 
-  All public interfaces are safe.
+  The `potted` trees constructed in batch mode can randomly access the child nodes in constant time.
+
+  The library users does not need any `unsafe` code to use this library.
 
 
 - Notation
 
-  A compact notation of tree construction has been developed by overloading sub and div operators. It makes complex tree composition look like literal expression, reducing a bit of syntax noise. See the example section for more.
+  Tow compact notations of tree construction has been developed by overloading sub and div operators. They make complex tree composition look like literal expression, reducing a bit of syntax noise.
+
+  The first notation is using operator overloading. Using operator '-' to express sibling relationship, and '/' to express parent-child relationship.
+  Something like `root /( first_child - second_child )`.
+
+  The second notation is using Rust tuple, something like `( root, first_child, second_child )`.
+
+  See the example section for more.
 
 # Implementations
 
-Currently this library provides only two slightly different trees, both implemented in raw-pointer-linked nodes.
+Currently this library provides three different trees, implemented in raw-pointer-linked or vec-backed nodes.
 
 - `linked::singly`
   Two pointers per node. Hold no size infomation. Note that constant time `pop_back` is not supported.
 
 - `linked::singly`
   Four pointers plus two `u32`s per node. Hold children count and node count.
+
+- `potted`
+  Seven `u32`s per node. Hold children count, node count and adjoined children count.
 
 # Prominent types
 
@@ -38,17 +50,18 @@ Tree, Forest and Node are the big three types in this library.
 
 - Forest is similar to Tree, except that it has no root node.
 
-- Node is the underlying storage type and **opaque** to the library users. Instead, &Node and &mut Node are exposed.
+- Node is the underlying storage type and **opaque** to the library users. Instead, `&Node`/`&mut Node` or `NodeRef`/`NodeMut` are exposed.
 
 # Examples
 
 - notation of a literal tree
 
   ```rust
-  let tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+  let linked_tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
+  let potted_tree = potted::Tree::from(( 0, (1,2,3), (4,5,6) ));
   ```
   
-  It encodes a tree drawn as follows:
+  They both encode a tree drawn as follows:
   
   .............
   .     0     .
