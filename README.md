@@ -62,7 +62,8 @@ Tree, Forest and Node are the big three types in this library.
   ```
   
   They both encode a tree drawn as follows:
-  
+
+  ```text 
   .............
   .     0     .
   .   /   \   .
@@ -70,6 +71,7 @@ Tree, Forest and Node are the big three types in this library.
   . / \   / \ .
   .2   3 5   6.
   .............
+  ``` 
 
 - use tree notation to reduce syntax noise, quoted from crate `reflection_derive`, [version 0.1.1](https://github.com/oooutlk/reflection/blob/master/reflection_derive/src/lib.rs#L202):
 
