@@ -66,6 +66,15 @@ impl<'a, T:'a> NodeRef<'a,T> {
 
     #[inline] pub fn is_leaf( self ) -> bool { self.pot().is_leaf( self.index )}
 
+    #[inline] pub fn parent( self ) -> Option<Self> {
+        let parent = self.pot().parent( self.index );
+        if parent.is_null() {
+            None
+        } else {
+            Some( Self::new( parent, self.pot() ))
+        }
+    }
+
     /// Returns the n-th child node in between constant time and linear time.
     /// Note that it is zero-based index.
     ///
