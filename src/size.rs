@@ -1,4 +1,3 @@
-#[cfg(feature="no_std")] 
 use rust::*;
 
 /// A struct keeping the node's children count and all its descendants count for resource management purpose.
@@ -8,8 +7,6 @@ pub struct Size {
     pub degree   : u32, // count of children node
     pub node_cnt : u32, // count of all nodes, including itself and all its descendants
 }
-
-use ::std::ops::{Add,AddAssign,Sub,SubAssign};
 
 impl Add for Size {
     type Output = Self;

@@ -9,8 +9,8 @@ macro_rules! primitive_impls {
     ($($name:ty),*) => { $(impl TreeData for $name {})* }
 }
 
-primitive_impls!{
-    bool, i8, u8, i16, u16, i32, u32, i128, u128, isize, usize, f32, f64
+primitive_impls! {
+    bool, i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize, f32, f64
 }
 
 impl TreeData for &'static str {}

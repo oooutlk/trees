@@ -18,7 +18,7 @@ impl Index for usize {
     fn is_null( self ) -> bool { self == 0 }
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Eq)]
 pub(crate) struct Node<T> {
     pub(crate) next     : u32,  // next sibling
     pub(crate) child    : u32,  // last child
@@ -165,7 +165,7 @@ impl<'a, T:'a> NodeMut<'a,T> {
 
     #[inline] pub(crate) fn node( &self ) -> &mut Node<T> { &mut self.pot_mut().nodes[ self.index ]}
 
-    #[inline] pub fn node_mut( &self, index: usize ) -> Self { Self{ index, ..*self }}
+    #[inline] pub(crate) fn node_mut( &self, index: usize ) -> Self { Self{ index, ..*self }}
 
     #[inline] pub fn node_ref( &self ) -> NodeRef<'a,T> { NodeRef{ index: self.index, pot: self.pot, mark: PhantomData }}
 

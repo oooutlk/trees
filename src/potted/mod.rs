@@ -29,6 +29,9 @@ pub use self::iter::{Iter,IterMut};
 pub mod notation;
 pub use self::notation::{TreeData,TupleTree,TupleForest,fr};
 
+//pub mod cursor;
+//pub use self::cursor::Cursor;
+
 pub use super::bfs;
 pub use super::Size;
 
@@ -85,5 +88,20 @@ mod tests {
 
         tree.root_mut().drop_back();
         assert_eq!( tree.root().to_string(), "_" );
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_grow() {
+        let mut tree: Tree<_> = ( 0, 1, 2 ).into();
+        {
+            let mut iter = tree.iter_mut();
+            let mut first = iter.next().unwrap();
+            let mut second = iter.next().unwrap();
+            second.append_fr(( fr(), 3, 4, 5, 6, 7 ));
+            first.append_fr(( fr(), 8, 9 ));
+        }
+        let expected: Tree<_> = ( 0, (1,8,9), (2,3,4,5,6,7,) ).into();
+        assert_eq!( tree, expected );
     }
 }

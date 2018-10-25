@@ -4,7 +4,7 @@ use super::bfs::{Bfs,BfsTree,Splitted,Visit,Moved};
 
 use rust::*;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Eq)]
 pub struct Tree<T> {
     pub(crate) pot : Pot<T>,
 }

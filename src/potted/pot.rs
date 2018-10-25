@@ -2,6 +2,7 @@ use super::{Node,Size,Index};
 
 use rust::*;
 
+#[derive(PartialEq,Eq)]
 pub struct Pot<T> {
     pub(crate) nodes: Vec<Node<T>>
 }
@@ -90,10 +91,25 @@ impl<T> Pot<T> {
         }
     }
 
+    #[inline] pub(crate) fn prev( &self, index: usize ) -> usize { self.nodes[ index ].prev as usize }
     #[inline] pub(crate) fn next( &self, index: usize ) -> usize { self.nodes[ index ].next as usize }
 
-    // get the true next sib node, with "forest node" in mind.
-    #[allow(dead_code)]
+    // get the actual prev sib node, with "forest node" in mind.
+    #[inline]
+    pub(crate) fn prev_sib( &self, index: usize ) -> usize {
+        let parent = self.parent( index );
+        if parent.is_null() || !self.is_forest( parent ) { // it is inside a normal node
+            self.next( index )
+        } else { // it is inside a forest node
+            if index == self.head( parent ) {
+                self.prev( parent )
+            } else {
+                self.prev( index )
+            }
+        }
+    }
+
+    // get the actual next sib node, with "forest node" in mind.
     #[inline]
     pub(crate) fn next_sib( &self, index: usize ) -> usize {
         let parent = self.parent( index );

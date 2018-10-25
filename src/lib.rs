@@ -327,6 +327,7 @@ mod rust {
     #[cfg(not(feature="no_std"))] extern crate core;
     #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,BorrowMut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::boxed::Box;
+    #[cfg(not(feature="no_std"))] pub(crate) use std::cell::RefCell;
     #[cfg(not(feature="no_std"))] pub(crate) use std::collections::VecDeque;
     #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::{self,*};
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt;
@@ -334,25 +335,28 @@ mod rust {
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
     #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::mem;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Deref,DerefMut,Div,Neg,Sub};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,null,null_mut};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::mem::{self,transmute};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,NonNull,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
     #[cfg(feature="no_std")] extern crate alloc;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::string::{String,ToString};
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::collections::VecDeque;
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::format;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::vec::Vec;
-    #[cfg(feature="no_std")] pub(crate) use core::collections::VecDeque;
+    #[cfg(feature="no_std")] pub(crate) use core::cell::RefCell;
     #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::{self,*};
     #[cfg(feature="no_std")] pub(crate) use core::fmt;
     #[cfg(feature="no_std")] pub(crate) use core::fmt::{Debug,Display,Formatter};
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
     #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
-    #[cfg(feature="no_std")] pub(crate) use core::mem;
-    #[cfg(feature="no_std")] pub(crate) use core::ops::{Deref,DerefMut,Div,Neg,Sub};
-    #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,null,null_mut};
+    #[cfg(feature="no_std")] pub(crate) use core::mem::{self,transmute};
+    #[cfg(feature="no_std")] pub(crate) use core::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,NonNull,null,null_mut};
 }
 
 pub mod linked;
