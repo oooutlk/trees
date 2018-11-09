@@ -199,13 +199,13 @@
 //!
 //!     The potted version:
 //!     ```rust,no_run
-//!     use trees::potted::{Tree,NodeRef,TreeData,TupleTree};
+//!     use trees::potted::{Tree,Node,TreeData,TupleTree};
 //!     let mut tree = Tree::from(( 0, 1, 2, 3 ));
 //!     {
-//!         let root: NodeRef<i32> = tree.root();
-//!         let first_child: NodeRef<i32>  = tree.root().iter().next().unwrap();
-//!         let second_child: NodeRef<i32> = tree.root().nth_child(1).unwrap(); // `nth_child()` is in constant time.
-//!         let third_child : NodeRef<i32> = tree.root().iter().last().unwrap();
+//!         let root: &Node<i32> = tree.root();
+//!         let first_child : &Node<i32> = tree.root().iter().next().unwrap();
+//!         let second_child: &Node<i32> = tree.root().nth_child(1).unwrap(); // `nth_child()` is in constant time.
+//!         let third_child : &Node<i32> = tree.root().iter().last().unwrap();
 //!     }
 //!     ```
 //!
@@ -323,38 +323,39 @@
 #![cfg_attr( feature = "no_std", no_std )]
 #![cfg_attr( feature = "no_std", feature( alloc ))]
 
+extern crate indexed;
+
 mod rust {
-    #[cfg(not(feature="no_std"))] extern crate core;
     #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,BorrowMut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::boxed::Box;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::cell::RefCell;
     #[cfg(not(feature="no_std"))] pub(crate) use std::collections::VecDeque;
     #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::{self,*};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::fmt;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{Debug,Display,Formatter};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{self,Debug,Display,Formatter};
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
     #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
-    #[cfg(not(feature="no_std"))] pub(crate) use std::mem::{self,transmute};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::mem::{self,forget,transmute};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,NonNull,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
+    #[cfg(feature="no_std")] extern crate core;
     #[cfg(feature="no_std")] extern crate alloc;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
-    #[cfg(feature="no_std")] pub(crate) use self::alloc::string::{String,ToString};
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::string::String;
+    #[cfg(feature="no_std")]
+                #[cfg(test)] pub(crate) use self::alloc::string::ToString;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::collections::VecDeque;
-    #[cfg(feature="no_std")] pub(crate) use self::alloc::format;
+    #[cfg(feature="no_std")]
+                #[cfg(test)] pub(crate) use self::alloc::format;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::vec::Vec;
-    #[cfg(feature="no_std")] pub(crate) use core::cell::RefCell;
     #[cfg(feature="no_std")] pub(crate) use core::cmp::Ordering::{self,*};
-    #[cfg(feature="no_std")] pub(crate) use core::fmt;
-    #[cfg(feature="no_std")] pub(crate) use core::fmt::{Debug,Display,Formatter};
+    #[cfg(feature="no_std")] pub(crate) use core::fmt::{self,Debug,Display,Formatter};
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
     #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
     #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
-    #[cfg(feature="no_std")] pub(crate) use core::mem::{self,transmute};
+    #[cfg(feature="no_std")] pub(crate) use core::mem::{self,forget,transmute};
     #[cfg(feature="no_std")] pub(crate) use core::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,NonNull,null,null_mut};
 }

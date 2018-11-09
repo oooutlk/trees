@@ -23,12 +23,12 @@ pub unsafe trait TupleTree where Self: Sized {
     fn descendants( &self, indirect_level: usize ) -> usize;
     fn height( &self ) -> usize;
     fn nodes( &self ) -> usize;
-    unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], pot: &mut Pot<Self::Data> );
+    unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], pot: Pot<Self::Data> );
 
-    fn construct_all_nodes( &self, parent: usize, pot: &mut Pot<Self::Data> ) {
+    fn construct_all_nodes( &self, parent: usize, mut pot: Pot<Self::Data> ) {
         let height = self.height();
         let mut offsets = Vec::with_capacity( height );
-        let pot_len = pot.nodes.len();
+        let pot_len = pot.len();
         offsets.push( pot_len );
         if height > 1 {
             offsets.push( pot_len+1 );
@@ -52,7 +52,7 @@ unsafe impl<T:TreeData> TupleTree for T {
     fn descendants( &self, _indirect_level: usize ) -> usize { 0 }
     fn height( &self ) -> usize { 1 }
     fn nodes( &self ) -> usize { 1 }
-    unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], pot: &mut Pot<Self::Data> ) {
+    unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], mut pot: Pot<Self::Data> ) {
         pot.gather( parent, offsets[ height ], self.data(), Size{ degree:0, node_cnt:1 });
         offsets[ height ] += 1;
     }
@@ -85,7 +85,7 @@ macro_rules! tuple_impls {
                 }
 
                 #[allow(unused_variables)]
-                unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], pot: &mut Pot<Self::Data> ) {
+                unsafe fn construct_node( &self, parent: usize, height: usize, offsets: &mut [usize], mut pot: Pot<Self::Data> ) {
                     pot.gather( parent, offsets[ height ], self.data(), Size{ degree: $len, node_cnt: self.nodes() as u32});
                     let pos = offsets[ height ];
                     offsets[ height ] += 1;
@@ -141,7 +141,7 @@ pub trait TupleForest where Self: Sized {
     fn descendants( &self, indirect_level: usize ) -> usize;
     fn height( &self ) -> usize;
     fn nodes( &self ) -> usize;
-    fn construct_all_nodes( &self, parent: usize, pot: &mut Pot<Self::Data> );
+    fn construct_all_nodes( &self, parent: usize, pot: Pot<Self::Data> );
 }
 
 macro_rules! tuple_fr_impls {
@@ -169,11 +169,11 @@ macro_rules! tuple_fr_impls {
                 }
 
                 #[allow(unused_variables)]
-                fn construct_all_nodes( &self, parent: usize, pot: &mut Pot<Self::Data> ) {
+                fn construct_all_nodes( &self, parent: usize, mut pot: Pot<Self::Data> ) {
                     let height = self.height()+1;
                     if height > 1 {
                         let mut offsets = Vec::with_capacity( height );
-                        let pot_len = pot.nodes.len();
+                        let pot_len = pot.len();
                         offsets.push( parent );
                         offsets.push( pot_len );
                         for level in 2..height {

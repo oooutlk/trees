@@ -23,7 +23,8 @@ impl<T> Forest<T> {
     /// Makes an empty `Forest`.
     #[inline] pub fn new() -> Forest<T> { Self::from( null_mut(), Size{ degree: 0, node_cnt: 0 })}
 
-    /// Returns the number of subtrees in `Forest`.
+    /// Returns the number of child nodes in `Forest`.
+    ///
     /// # Examples
     ///
     /// ```

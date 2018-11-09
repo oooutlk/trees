@@ -17,8 +17,7 @@ pub mod forest;
 pub use self::forest::Forest; 
 
 pub mod node;
-pub use self::node::{NodeRef,NodeMut,MovedNodes,Index};
-use self::node::Node;
+pub use self::node::{Node,MovedNodes,NullIndex};
 
 pub mod pot;
 pub use self::pot::Pot;
@@ -29,23 +28,65 @@ pub use self::iter::{Iter,IterMut};
 pub mod notation;
 pub use self::notation::{TreeData,TupleTree,TupleForest,fr};
 
-//pub mod cursor;
-//pub use self::cursor::Cursor;
-
 pub use super::bfs;
 pub use super::Size;
+
+use rust::*;
+
+const NULL : usize = 0;  // for convenience in constructing tree/forest from BFS stream.
+const ROOT : usize = 1;  // root for tree, fake root for forest.
+const TREE   : u32 = 0;  // flag in [NULL].adjoined to indicate a potted tree.
+const FOREST : u32 = !0; // flag in [NULL].adjoined to indicate a potted forest.
+
+fn tree_null<T>() -> Node<T> {
+    Node {
+        next     : NULL as u32,
+        child    : u32::null(),
+        prev     : NULL as u32,
+        parent   : u32::null(),
+        size     : Size{ degree: 0, node_cnt: 0 },
+        adjoined : TREE,
+        index    : NULL as u32,
+        data     : unsafe{ mem::uninitialized() },
+    }
+}
+
+fn forest_null<T>() -> Node<T> {
+    Node {
+        next     : NULL as u32,
+        child    : u32::null(),
+        prev     : NULL as u32,
+        parent   : u32::null(),
+        size     : Size{ degree: 0, node_cnt: 0 },
+        adjoined : FOREST,
+        index    : NULL as u32,
+        data     : unsafe{ mem::uninitialized() },
+    }
+}
+
+fn fake_root <T>() -> Node<T> {
+    Node {
+        next     : ROOT as u32,
+        child    : u32::null(),
+        prev     : ROOT as u32,
+        parent   : u32::null(),
+        size     : Size{ degree: 0, node_cnt: 0 },
+        adjoined : 0,
+        index    : ROOT as u32,
+        data     : unsafe{ mem::uninitialized() },
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust::*;
 
     #[test] fn test_tree_to_string() {
-        fn tree_to_string<'a, T:Display>( node: NodeRef<'a,T> ) -> String {
+        fn tree_to_string<'a, T:Display>( node: &'a Node<T> ) -> String {
             if node.is_leaf() {
-                node.data().to_string()
+                node.data.to_string()
             } else {
-                format!( "{}( {})", node.data(), 
+                format!( "{}( {})", node.data, 
                     node.iter().fold( String::new(),
                         |s,c| s + &tree_to_string(c) + &" " ))
             }
@@ -66,7 +107,7 @@ mod tests {
         tree.root_mut().append_tr(( "2", "3" ));
         assert_eq!( tree.root().to_string(), "0( 1 2( 3 ) )" );
 
-        tree.root_mut().set_data( "_" );
+        tree.root_mut().data = "_";
         assert_eq!( tree.root().to_string(), "_( 1 2( 3 ) )" );
 
         tree.root_mut().append_tr(( "4", ));
@@ -77,7 +118,7 @@ mod tests {
         assert_eq!( tree.pot().nth_child( 1, 2 ).unwrap(), 5 );
         assert_eq!( tree.pot().nth_child( 1, 3 ), None );
 
-        tree.root_mut().nth_child(1).unwrap().drop_back();
+        tree.root_mut().nth_child_mut(1).unwrap().drop_back();
         assert_eq!( tree.root().to_string(), "_( 1 2 4 )" );
 
         tree.root_mut().drop_back();
@@ -90,14 +131,13 @@ mod tests {
         assert_eq!( tree.root().to_string(), "_" );
     }
 
-    #[should_panic]
     #[test]
     fn test_grow() {
         let mut tree: Tree<_> = ( 0, 1, 2 ).into();
         {
             let mut iter = tree.iter_mut();
-            let mut first = iter.next().unwrap();
-            let mut second = iter.next().unwrap();
+            let first = iter.next().unwrap();
+            let second = iter.next().unwrap();
             second.append_fr(( fr(), 3, 4, 5, 6, 7 ));
             first.append_fr(( fr(), 8, 9 ));
         }

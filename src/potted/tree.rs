@@ -1,22 +1,18 @@
-use super::{Pot,Forest,NodeRef,NodeMut,MovedNodes,Iter,IterMut,TupleTree,TupleForest,Index};
+//! `Tree` composed of hierarchical `Node`s.
 
-use super::bfs::{Bfs,BfsTree,Splitted,Visit,Moved};
+use super::{Pot,Node,MovedNodes,Forest,Iter,TupleTree,NullIndex,ROOT,NULL};
+
+use super::bfs::{BfsTree,Splitted,Visit,Moved};
 
 use rust::*;
 
-#[derive(Debug,PartialEq,Eq)]
 pub struct Tree<T> {
     pub(crate) pot : Pot<T>,
 }
 
 impl<T> Tree<T> {
-    pub fn root( &self ) -> NodeRef<T> {
-        NodeRef::new( 1, &self.pot )
-    }
-
-    pub fn root_mut( &mut self ) -> NodeMut<T> {
-        NodeMut::new( 1, &mut self.pot )
-    }
+    pub fn root( &self ) -> &Node<T> { &self.pot[ ROOT ]}
+    pub fn root_mut( &mut self ) -> &mut Node<T> { &mut self.pot[ ROOT ]}
 
     /// Break the tree into root's data and the children forest.
     ///
@@ -31,14 +27,12 @@ impl<T> Tree<T> {
     /// assert_eq!( forest.to_string(), "( 2( 3 4 ) 5( 6 7 ) )" );
     /// ```
     pub fn abandon( mut self ) -> ( T, Forest<T> ) {
-        let root_data = unsafe{ ptr::read( self.pot.nodes.as_ptr().offset(1) ).data };
-        self.pot.nodes[1].size.node_cnt -= 1;
-        let len = self.pot.nodes.len();
-        let cap = self.pot.nodes.capacity();
-        let nodes = self.pot.nodes.as_mut_ptr(); 
-        mem::forget( self );
-        let nodes = unsafe{ Vec::from_raw_parts( nodes, len, cap )};
-        ( root_data, Forest{ pot: Pot{ nodes }})
+        self.root_mut().size.node_cnt -= 1;
+        let root_data = unsafe{ ptr::read( self.root() ).data };
+        let mut pot = self.pot;
+        pot.set_forest_pot();
+        forget( self );
+        ( root_data, Forest{ pot })
     }
 
     /// For debug purpose.
@@ -64,39 +58,34 @@ impl<T> Tree<T> {
     ///     bfs::Visit{ data: 6, size: Size{ degree: 0, node_cnt: 1 }},
     /// ]);
     /// ```
-    pub fn into_bfs<'a>( mut self ) -> BfsTree<MovedNodes<'a,T,Splitted<Iter<'a,T>>>> {
-        let root: NodeRef<'a,T> = unsafe{ mem::transmute( self.root() )};
+    pub fn into_bfs<'a>( self ) -> BfsTree<MovedNodes<'a,T,Splitted<Iter<'a,T>>>> {
+        let root: &'a Node<T> = unsafe{ transmute( self.root() )};
         let bfs = root.bfs();
-        let ( iter, size ) = ( MovedNodes::new( Moved( bfs.iter ), &mut self.pot.nodes ), bfs.size );
-        mem::forget( self );
+        let ( iter, size ) = ( MovedNodes::new( Moved( bfs.iter ), self.pot ), bfs.size );
+        forget( self );
         BfsTree{ iter, size }
     }
+}
 
-    pub fn iter<'a, 's:'a>( &'s self ) -> Iter<'a,T> { self.root().iter() }
-    pub fn iter_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> { self.root_mut().iter_mut() }
+impl<T> Borrow<Node<T>> for Tree<T> { fn borrow( &self ) -> &Node<T> { self.root() }}
+impl<T> BorrowMut<Node<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Node<T> { self.root_mut() }}
 
-    pub fn prepend_tr<Tr>( &mut self, tuple: Tr ) where Tr: TupleTree<Data=T> { self.root_mut().prepend_tr( tuple ); }
-    pub fn append_tr<Tr>( &mut self, tuple: Tr ) where Tr: TupleTree<Data=T> { self.root_mut().append_tr( tuple ); }
-    pub fn insert_tr<Tuple>( &mut self, nth: usize, tuple: Tuple ) where Tuple: TupleTree<Data=T> { self.root_mut().insert_tr( nth, tuple ); }
+impl<T> Deref for Tree<T> {
+    type Target = Node<T>;
+    fn deref( &self ) -> &Node<T> { &*self.root() }
+}
 
-    pub fn prepend_fr<Fr>( &mut self, tuple: Fr ) where Fr: TupleForest<Data=T> { self.root_mut().prepend_fr( tuple ); }
-    pub fn append_fr<Fr>( &mut self, tuple: Fr ) where Fr: TupleForest<Data=T> { self.root_mut().append_fr( tuple ); }
-
-    pub fn drop_front( &mut self ) { self.root_mut().drop_front(); }
-    pub fn drop_back( &mut self ) { self.root_mut().drop_back(); }
-    pub fn drop_nth( &mut self, nth: usize ) { self.root_mut().drop_nth( nth ); }
-
-    pub fn prepend_bfs<Iter>( &mut self, bfs: Bfs<Iter> ) where Iter : Iterator<Item=Visit<T>> { self.root_mut().prepend_bfs( bfs ); }
-    pub fn append_bfs<Iter>( &mut self, bfs: Bfs<Iter> ) where Iter : Iterator<Item=Visit<T>> { self.root_mut().append_bfs( bfs ); }
+impl<T> DerefMut for Tree<T> {
+    fn deref_mut( &mut self ) -> &mut Node<T> { &mut *self.root_mut() }
 }
 
 impl<T,Tuple> From<Tuple> for Tree<T>
     where Tuple: TupleTree<Data=T>
 {
     fn from( tuple: Tuple ) -> Self {
-        let mut pot = Pot::new();
-        tuple.construct_all_nodes( usize::null(), &mut pot );
-        mem::forget( tuple );
+        let pot = Pot::new_tree();
+        tuple.construct_all_nodes( usize::null(), pot );
+        forget( tuple );
         Tree{ pot }
     }
 }
@@ -105,25 +94,38 @@ impl<T,Iter> From<BfsTree<Iter>> for Tree<T>
     where Iter : Iterator<Item=Visit<T>>
 {
     fn from( tree_iter: BfsTree<Iter> ) -> Self {
-        let mut pot = Pot::new();
-        let dummy_mut = NodeMut::new( usize::null(), &mut pot );
-        dummy_mut.append_bfs( tree_iter.wrap() );
+        let mut pot = Pot::new_tree();
+        pot[ NULL ].append_bfs( tree_iter.wrap() );
         Tree{ pot }
     }
 }
 
 impl<T> Drop for Tree<T> {
     fn drop( &mut self ) {
-        if !self.pot.nodes.is_empty() {
+        if self.pot.new_index() != 0 {
             self.root_mut().drop_all_data_if_needed();
-            unsafe{ self.pot.nodes.set_len(0); }
         }
+        unsafe{ Pot::drop( self.pot ); }
     }
 }
-impl<T:Display> Display for Tree<T> {
-    fn fmt( &self, f: &mut Formatter ) -> fmt::Result { self.root().fmt(f) }
-}
+
+impl<T:Debug> Debug for Tree<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result { write!( f, "{:?}", self.root() )}}
+
+impl<T:Display> Display for Tree<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result { write!( f, "{}", self.root() )}}
  
+impl<T:PartialEq> PartialEq for Tree<T> {
+    fn eq( &self, other: &Self ) -> bool { self.root().eq( other.root() )}
+    fn ne( &self, other: &Self ) -> bool { self.root().ne( other.root() )}
+}
+
+impl<T:Eq> Eq for Tree<T> {}
+
+impl<T:PartialOrd> PartialOrd for Tree<T> { #[inline] fn partial_cmp( &self, other: &Self ) -> Option<Ordering> { self.root().partial_cmp( other.root() )}}
+
+impl<T:Ord> Ord for Tree<T> { #[inline] fn cmp( &self, other: &Self ) -> Ordering { self.root().cmp( other.root() )}}
+
+impl<T:Hash> Hash for Tree<T> { fn hash<H:Hasher>( &self, state: &mut H ) { self.root().hash( state )}}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,12 +134,12 @@ mod tests {
     #[test] fn from_tuple() {
         let tuple = ( 0, (1,2,3), (4,5,6) );
         let potted = Tree::<i32>::from( tuple );
-        assert_eq!( potted.root().to_string(), "0( 1( 2 3 ) 4( 5 6 ) )" );
+        assert_eq!( potted.to_string(), "0( 1( 2 3 ) 4( 5 6 ) )" );
     }
 
     #[test] fn from_bfs() {
         let linked = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
         let potted = Tree::<i32>::from( linked.into_bfs() );
-        assert_eq!( potted.root().to_string(), "0( 1( 2 3 ) 4( 5 6 ) )" );
+        assert_eq!( potted.to_string(), "0( 1( 2 3 ) 4( 5 6 ) )" );
     }
 }

@@ -99,7 +99,7 @@ impl<T> BorrowMut<Node<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Node
 
 impl<T> Deref for Tree<T> {
     type Target = Node<T>;
-    fn deref( &self ) -> &Node<T> { unsafe { & *self.root }}
+    fn deref( &self ) -> &Node<T> { unsafe { &*self.root }}
 }
 
 impl<T> DerefMut for Tree<T> {
