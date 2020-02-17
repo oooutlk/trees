@@ -341,6 +341,7 @@ mod rust {
     #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
     #[cfg(not(feature="no_std"))] pub(crate) use std::mem::{self,forget,transmute};
     #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::pin::Pin;
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,NonNull,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
@@ -362,6 +363,7 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
     #[cfg(feature="no_std")] pub(crate) use core::mem::{self,forget,transmute};
     #[cfg(feature="no_std")] pub(crate) use core::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(feature="no_std")] pub(crate) use core::pin::Pin;
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,NonNull,null,null_mut};
 }
 

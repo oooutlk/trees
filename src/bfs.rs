@@ -86,6 +86,7 @@ impl<T,Iter> Bfs<Iter>
     }
 }
 
+/// Split tree node into data item and chidren iter.
 pub trait Split {
     type Item;
     type Iter: ExactSizeIterator;
@@ -135,7 +136,8 @@ impl<T,Item,Iter> Iterator for Splitted<Iter>
     }
 }
 
-pub struct Moved<Iter>( pub(crate) Iter );
+// for potted tree/forest.
+pub(crate) struct Moved<Iter>( pub(crate) Iter );
 
 impl<'a,T,Iter> Iterator for Moved<Iter>
     where Iter : Iterator<Item=Visit<&'a T>>
@@ -145,7 +147,7 @@ impl<'a,T,Iter> Iterator for Moved<Iter>
 
     fn next( &mut self ) -> Option<Visit<T>> {
         self.0.next().map( |item| Visit {
-            data : unsafe{ ptr::read( item.data )},
+            data : unsafe{ ptr::read( item.data )}, // potted trees/forests should forget their data
             size : item.size,
         })
     }
