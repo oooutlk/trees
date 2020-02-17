@@ -25,8 +25,8 @@ impl NullIndex for usize {
 pub struct Node<T> {
     pub(crate) next     : u32,  // next sibling
     pub(crate) child    : u32,  // last child
-    pub(crate) prev     : u32,  // next sibling
-    pub(crate) parent   : u32,  // last child
+    pub(crate) prev     : u32,  // previous sibling
+    pub(crate) parent   : u32,  // parent node
     pub(crate) size     : Size, // count of children and count of all nodes, including itself and all its descendants
     pub(crate) adjoined : u32,  // count of adjioned children.
                                 // `adjoined == FOREST` means "this node has no data, it is a forest of which children are all adjoined"

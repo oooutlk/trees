@@ -13,14 +13,14 @@
 //!
 //! The current version provides two implementions of heap-allocated, child-sibling linked trees and one implementation of vec-backed tree.
 //!
-//! - The default implementation is [`linked::fully`](linked/fully/index.html),
+//! - The default implementation is [linked::fully](linked/fully/index.html),
 //! which stores previous/next sibling and parent/child pointers in one node, with size information tracked.
 //!
-//! - The alternative linked tree is [`linked::singly`](linked/singly/index.html),
+//! - The alternative linked tree is [linked::singly](linked/singly/index.html),
 //! which stores only next sibling and last child pointers in one node, without size information tracked.
-//! The space cost is minimal, but with a few penalties on time cost or lack of function, e.g. linear time `size_hint` of iterators, and missing `pop_back()`.
+//! The space cost is minimal, but with a few penalties on time cost or lack of function, e.g. linear time size_hint of iterators, and missing pop_back().
 //!
-//! - The other alternative using vec as its underlying storage is [`potted`](potted/index.html). 
+//! - The other alternative using vec as its underlying storage is [potted](potted/index.html). 
 //! The memory allocations are minimal, and **trees can be written in Rust tuples**.
 //! Random access over child nodes is supported for tree/forest constructed in batch mode.
 //!
@@ -30,9 +30,9 @@
 //!
 //! ## Quick start
 //!
-//! 1. `Tree` notation
+//! 1. Tree notation
 //!
-//!     ```rust,no_run
+//!     ```no_run
 //!     use trees::tr;      // tr stands for tree
 //!     tr(0);              // A single tree node with data 0. tr(0) has no children
 //!     tr(0) /tr(1);       // tr(0) has one child tr(1)
@@ -46,7 +46,7 @@
 //!     ```
 //!
 //!     The potted version:
-//!     ```rust,no_run
+//!     ```no_run
 //!     // the trees written in potted tree, same as described above
 //!     use trees::potted::{Tree,TreeData,TupleTree};
 //!     Tree::from(( 0, ));
@@ -54,9 +54,9 @@
 //!     Tree::from(( 0, 1, 2 ));
 //!     ```
 //!
-//! 2. `Forest` notation
+//! 2. Forest notation
 //!
-//!     ```rust,no_run
+//!     ```no_run
 //!     use trees::{tr,fr}; // fr stands for forest
 //!
 //!     fr::<i32>();        // An empty forest
@@ -77,7 +77,7 @@
 //!     ```
 //!
 //!     The potted version:
-//!     ```rust,no_run
+//!     ```no_run
 //!     // the forests written in potted tree, same as described above
 //!     use trees::potted::{Forest,TreeData,TupleForest,fr};
 //!
@@ -87,9 +87,9 @@
 //!     Forest::from(( fr(), (1,2,3), (4,5,6) ));
 //!     ```
 //!
-//! 3. `Tree` traversal, using `Node::iter()` recursively
+//! 3. Tree traversal, using Node::iter() recursively
 //!
-//!     ```rust
+//!     ```
 //!     use trees::{tr,Node};
 //!     use std::fmt::Display;
 //!
@@ -112,11 +112,11 @@
 //!
 //! 4. String representation 
 //! 
-//!     The `Debug` and `Display` trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
+//! The Debug and Display trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
 //!
-//!     Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
+//! Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
 //!     
-//!     ```rust
+//!```
 //!     use trees::{tr,fr};
 //!
 //!     let tree = tr(0) /( tr(1) /tr(2)/tr(3) ) /( tr(4) /tr(5)/tr(6) );
@@ -130,14 +130,14 @@
 //!     let str_repr = "( 1( 2 3 ) 4( 5 6 ) )";
 //!     assert_eq!( forest.to_string(), str_repr );
 //!     assert_eq!( format!( "{:?}", fr::<i32>() ), "()" );
-//!     ```
+//!```
 //!
 //! ## Slow start
 //!
 //! ### Concepts
 //!
-//! 1. `Tree` is composed of a root `Node` and an optional `Forest` as its children. A tree can NOT be empty.
-//!     ```rust
+//! 1. Tree is composed of a root Node and an optional Forest as its children. A tree can NOT be empty.
+//!     ```
 //!     use trees::{tr,Tree,Forest};
 //!
 //!     let mut tree: Tree<i32> = tr(0);
@@ -154,8 +154,8 @@
 //!     ```
 //!
 //!     The potted version:
-//!     ```rust
-//!     // `potted::Forest` cannot be borrowed from `potted::Tree`, and `abandon` is different.
+//!     ```
+//!     // potted::Forest cannot be borrowed from potted::Tree, and abandon is different.
 //!     use trees::potted::{Tree,Forest,TreeData,TupleTree,TupleForest,fr};
 //!
 //!     let mut forest = Forest::from(( fr(), 1, 2, 3 ));
@@ -166,8 +166,8 @@
 //!     assert_eq!( forest.to_string(), "( 1 2 3 )" );
 //!     ```
 //!
-//! 2. `Forest` is composed of `Node`s as its children. A forest can be empty.
-//!     ```rust,no_run
+//! 2. Forest is composed of Nodes as its children. A forest can be empty.
+//!     ```no_run
 //!     use trees::{tr,fr,Forest};
 //!
 //!     let mut forest: Forest<i32> = fr(); // an empty forest
@@ -176,14 +176,14 @@
 //!     ```
 //!
 //!     The potted version:
-//!     ```rust,no_run
+//!     ```no_run
 //!     use trees::potted::{Tree,Forest,TreeData,TupleForest};
 //!     let mut forest = Forest::<i32>::new(); // an empty forest
 //!     forest.append_tr(( 1, 2, 3 ));         // forest has three nodes
 //!     ```
 //!
-//! 3. `Node` is a borrowed tree, and `Tree` is an owned `Node`. All nodes in a tree can be referenced as `&Node`, but only the root node can be observed as `Tree` by the user.
-//!     ```rust,no_run
+//! 3. Node is a borrowed tree, and Tree is an owned Node. All nodes in a tree can be referenced as &Node, but only the root node can be observed as Tree by the user.
+//!     ```no_run
 //!     use trees::{tr,Tree,Node};
 //!     use std::borrow::Borrow;
 //!
@@ -198,13 +198,13 @@
 //!     ```
 //!
 //!     The potted version:
-//!     ```rust,no_run
+//!     ```no_run
 //!     use trees::potted::{Tree,Node,TreeData,TupleTree};
 //!     let mut tree = Tree::from(( 0, 1, 2, 3 ));
 //!     {
 //!         let root: &Node<i32> = tree.root();
 //!         let first_child : &Node<i32> = tree.root().iter().next().unwrap();
-//!         let second_child: &Node<i32> = tree.root().nth_child(1).unwrap(); // `nth_child()` is in constant time.
+//!         let second_child: &Node<i32> = tree.root().nth_child(1).unwrap(); // nth_child() is in constant time.
 //!         let third_child : &Node<i32> = tree.root().iter().last().unwrap();
 //!     }
 //!     ```
@@ -213,74 +213,74 @@
 //!
 //! The children nodes of a node, or a forest, is conceptually a forward list.
 //! 
-//! 1. Using `iter()` to iterate over referenced child `Node`s, you can:
+//! 1. Using iter() to iterate over referenced child Nodes, you can:
 //! 
-//!     1.1 read the data associated with each node.
+//! 1.1 read the data associated with each node.
 //! 
-//!     1.2 use `iter()` to iterate over children's children, etc.
+//! 1.2 use iter() to iterate over children's children, etc.
 //! 
-//! 2. Using `iter_mut()` to iterate over referenced child `Node`s, you can:
+//! 2. Using iter_mut() to iterate over referenced child Nodes, you can:
 //! 
-//!     2.1 read/write the data associated with each node, or `prepend()`, `append`, `abandon()`, `push_front()`, `pop_front()`, `push_back()`, `pop_back()` child node(s) in constant time.
+//! 2.1 read/write the data associated with each node, or prepend(), append, abandon(), push_front(), pop_front(), push_back(), pop_back() child node(s) in constant time.
 //!
-//!     Note that `linked::singly` does not have `pop_back()`, and `potted` tree/forest's methods are different in names and/or functionalities.
+//! Note that linked::singly does not have pop_back(), and potted tree/forest's methods are different in names and/or functionalities.
 //! 
-//!     2.2 use `iter_mut()` to iterate over children's children, etc.
+//! 2.2 use iter_mut() to iterate over children's children, etc.
 //! 
-//! 3. Using `onto_iter()` to iterate over `Subnode`s, you can:
+//! 3. Using onto_iter() to iterate over Subnodes, you can:
 //! 
-//!     3.1 `insert_before`, `insert_after()`, `depart()` node(s) at any position.
+//! 3.1 insert_before, insert_after(), depart() node(s) at any position.
 //! 
-//!     3.2 do whatever `iter()` or `iter_mut()` can do.
+//! 3.2 do whatever iter() or iter_mut() can do.
 //! 
-//!     Note that it is not implemented for potted version.
+//! Note that it is not implemented for potted version.
 //! 
-//! 4. Using `Forest::<T>::into_iter()` to iterate over `Tree`s, you can:
+//! 4. Using Forest::<T>::into_iter() to iterate over Trees, you can:
 //! 
-//!     Do whatever you want to.
+//! Do whatever you want to.
 //! 
-//!     Note that it is not implemented for potted version.
+//! Note that it is not implemented for potted version.
 //! 
 //! ### Traversal in depth-first manner
 //!
-//! Using `TreeWalk`/`ForestWalk` to traverse on `Tree`/`Forest`, you can:
+//! Using TreeWalk/ForestWalk to traverse on Tree/Forest, you can:
 //!
 //! 1. read the data associated with each descendant node in depth first manner, preorder or postorder at will.
 //!
-//! 2. visit `Node`s irregularly, unlike the iterators mentioned above that are usually called intensively.
+//! 2. visit Nodes irregularly, unlike the iterators mentioned above that are usually called intensively.
 //! 
 //! Note that it is not implemented yet for potted version.
 //!
 //! ### Resource management
 //!
-//! 1. `Tree`/`Forest` will recursively destruct all the nodes owned by them when reaching the end of their lifetimes.
+//! 1. Tree/Forest will recursively destruct all the nodes owned by them when reaching the end of their lifetimes.
 //!
-//! 2. `Clone` for `Tree` and `Forest` makes deep copy which clones all its decendant nodes. To do copy for just one node, simplely `let cloned = trees::tr( node.data.clone() );`.
+//! 2. Clone for Tree and Forest makes deep copy which clones all its decendant nodes. To do copy for just one node, simplely let cloned = trees::tr( node.data.clone() );.
 //!
-//! 3. `linked::fully::Node` will track count of children nodes, and count of all descendant nodes and itself, while `linked::singly::node` does not track any size information.
+//! 3. linked::fully::Node will track count of children nodes, and count of all descendant nodes and itself, while linked::singly::node does not track any size information.
 //!
 //! ### Traversal in breadth-first manner
 //!
-//! 1. `Node` provides (mutably) borrowed iterator `fn bfs_iter( &self )`/`fn bfs_iter_mut( &mut self )`.
+//! 1. Node provides (mutably) borrowed iterator fn bfs_iter( &self )/fn bfs_iter_mut( &mut self ).
 //!
-//! 2. `Tree`/`Forest` provides owned iterator `fn bfs_into_iter( self )`.
+//! 2. Tree/Forest provides owned iterator fn bfs_into_iter( self ).
 //!
-//! 3. All version of `Tree`/`Forest`/`Node` support `Into` BFS streams, while potted version supports `From` BFS streams also.
+//! 3. All version of Tree/Forest/Node support Into BFS streams, while potted version supports From BFS streams also.
 //!
 //! ### Panics
 //!
-//! One cause of panics is tree data's `Clone`:
-//! * `Node::<T>::to_owned()`
-//! * `Tree::<T>::clone()`
-//! * `Forest::<T>::clone()`
+//! One cause of panics is tree data's Clone:
+//! * Node::<T>::to_owned()
+//! * Tree::<T>::clone()
+//! * Forest::<T>::clone()
 //! * all of the operator overloading functions the operands of which contain at least one referenced type.
 //!
 //! A few assertions in potted version can also cause panics.
 //!
 //! ### Safety
 //!
-//! Collections of pointer-based tree implementation require many `unsafe`s to do raw pointer dereferences.
-//! Currently this crate contains **nearly 200 `unsafe`** blocks in its source code.
+//! Collections of pointer-based tree implementation require many unsafes to do raw pointer dereferences.
+//! Currently this crate contains **nearly 200 unsafe** blocks in its source code.
 //! This crate relies on lifetime bounds and borrow check to keep memory-safety, in compile time.
 //! The following are some simple demonstrations.
 //!
@@ -292,6 +292,7 @@
 //!     let tree = tr(0);
 //!     root = tree.root();
 //! }
+//! root.push_back( tr(1) );
 //! ```
 //!
 //! ```compile_fail
@@ -302,6 +303,7 @@
 //!     let mut tree = tr(0);
 //!     root = tree.root_mut();
 //! }
+//! root.pop_front();
 //! ```
 //!
 //! ```compile_fail
@@ -310,14 +312,17 @@
 //! let mut tree = tr(0) /tr(1);
 //! let child = tree.iter().next();
 //! tree.abandon(); // can not drop sub trees being borrowed
+//! let _ = child.first();
 //! ```
 //!
 //! ```compile_fail
 //! use trees::{Node,tr};
 //!
-//! let mut tree = tr(0) /tr(1);
-//! let child1 = tree.iter_mut().next();
-//! let child2 = tree.iter_mut().next(); // can not have two mutable references on the same node
+//! let mut tree = tr(0) /tr(1) /tr(2);
+//! let child1 = tree.iter_mut().next().unwrap();
+//! let child2 = tree.iter_mut().next().unwrap(); // can not have two mutable references on the same node
+//! child2.push_back( tr(3) );
+//! child1.push_back( tr(4) );
 //! ```
 
 #![cfg_attr( feature = "no_std", no_std )]
