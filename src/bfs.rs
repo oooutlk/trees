@@ -2,7 +2,7 @@
 
 use super::Size;
 
-use rust::*;
+use crate::rust::*;
 
 /// A struct for one visit in breadth first search.
 #[derive(Debug,PartialEq,Eq)]

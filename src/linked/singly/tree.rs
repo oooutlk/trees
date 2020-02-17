@@ -4,7 +4,7 @@ use super::{Node,Link,Forest,Size};
 use super::{heap};
 use super::bfs::{BfsTree,Splitted,Split};
 use super::forest::IntoIter;
-use rust::*;
+use crate::rust::*;
 
 /// A non-nullable tree
 pub struct Tree<T> {

@@ -1,4 +1,4 @@
-use rust::*;
+use crate::rust::*;
 
 /// A struct keeping the node's children count and all its descendants count for resource management purpose.
 /// Note that `u32` is utilized rather than `usize`, because 4194304K ought to be enough for anybody.

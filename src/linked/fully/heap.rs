@@ -2,7 +2,7 @@
 
 use super::{Node,Link,Size};
 
-use rust::*;
+use crate::rust::*;
 
 pub type Phantom<T> = PhantomData<Box<Node<T>>>;
 

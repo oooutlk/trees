@@ -1,5 +1,5 @@
 use super::{Node,Link};
-use rust::*;
+use crate::rust::*;
 
 /// An iterator over the sub `Node`s of a `Node` or `Forest`.
 ///

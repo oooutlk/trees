@@ -2,7 +2,7 @@
 
 use super::{Tree,Forest,Iter,IterMut,OntoIter,Size};
 use super::bfs::{BfsTree,Splitted,Split};
-use rust::*;
+use crate::rust::*;
 
 pub struct Link {
     pub(crate) next   : *mut Link, // next sibling

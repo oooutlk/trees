@@ -2,7 +2,7 @@
 
 use super::{Tree,Forest,Node};
 
-use rust::{Vec,null};
+use crate::rust::{Vec,null};
 
 /// Distinguish between visiting a leaf node and (begin/end of) visiting a branched node.
 #[derive( Copy, Clone, Debug, Eq, PartialEq )]

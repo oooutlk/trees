@@ -366,7 +366,7 @@ mod rust {
 }
 
 pub mod linked;
-pub use linked::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
+pub use crate::linked::{tr,fr,Tree,Forest,Node,Iter,IterMut,Subnode,OntoIter,Visit,TreeWalk,ForestWalk};
 
 pub mod potted;
 

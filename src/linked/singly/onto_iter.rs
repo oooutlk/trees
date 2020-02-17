@@ -1,7 +1,7 @@
 //! A full functional mutable iterator implementation with the extra ability of inserting/removing `Node` at any position than `IterMut`.
 
 use super::{Node,Link,Tree};
-use rust::*;
+use crate::rust::*;
 
 /// Wrapper of `Node` for allowing modification of parent or sib links.
 /// Any `Node` that is the root of some `Tree` is impossible to be `Subnode`.

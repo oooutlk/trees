@@ -5,7 +5,7 @@ use super::bfs::{Bfs,BfsTree,Splitted,Split,Moved,Visit};
 
 use indexed::Indexed;
 
-use rust::*;
+use crate::rust::*;
 
 pub trait NullIndex {
     fn null() -> Self;

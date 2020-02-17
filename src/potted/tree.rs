@@ -4,7 +4,7 @@ use super::{Pot,Node,MovedNodes,Forest,Iter,TupleTree,NullIndex,ROOT,NULL};
 
 use super::bfs::{BfsTree,Splitted,Visit,Moved};
 
-use rust::*;
+use crate::rust::*;
 
 pub struct Tree<T> {
     pub(crate) pot : Pot<T>,
@@ -129,7 +129,7 @@ impl<T:Hash> Hash for Tree<T> { fn hash<H:Hasher>( &self, state: &mut H ) { self
 #[cfg(test)]
 mod tests {
     use super::*;
-    use linked::fully::tr;
+    use crate::linked::fully::tr;
 
     #[test] fn from_tuple() {
         let tuple = ( 0, (1,2,3), (4,5,6) );

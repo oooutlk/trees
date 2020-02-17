@@ -30,7 +30,7 @@ use super::Size;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rust::*;
+    use crate::rust::*;
 
     #[cfg(feature="no_std")] extern crate alloc;
     #[cfg(feature="no_std")] use self::alloc::string::ToString;

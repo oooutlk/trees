@@ -2,7 +2,7 @@
 
 use super::{Node,Link,Tree,Iter,IterMut,OntoIter,Size};
 use super::bfs::{BfsForest,Splitted};
-use rust::*;
+use crate::rust::*;
 
 /// A nullable forest
 pub struct Forest<T> {

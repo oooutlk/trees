@@ -1,6 +1,6 @@
 use super::{Pot,Size};
 
-use rust::*;
+use crate::rust::*;
 
 /// mark trait for types to be the data type of the tree/forest.
 pub trait TreeData: Sized {}

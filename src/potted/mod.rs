@@ -31,7 +31,7 @@ pub use self::notation::{TreeData,TupleTree,TupleForest,fr};
 pub use super::bfs;
 pub use super::Size;
 
-use rust::*;
+use crate::rust::*;
 
 const NULL : usize = 0;  // for convenience in constructing tree/forest from BFS stream.
 const ROOT : usize = 1;  // root for tree, fake root for forest.

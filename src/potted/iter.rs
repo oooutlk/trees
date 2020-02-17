@@ -1,5 +1,5 @@
 use super::{Pot,Node};
-use rust::*;
+use crate::rust::*;
 
 #[derive(Debug)]
 pub struct Iter<'a, T:'a> {

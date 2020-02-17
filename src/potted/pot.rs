@@ -2,7 +2,7 @@ use super::{Node,Size,NullIndex,TREE,FOREST,NULL,tree_null,forest_null};
 
 use indexed::Pool;
 
-use rust::*;
+use crate::rust::*;
 
 pub struct Pot<T> {
     pub(crate) nodes: NonNull<Pool<Node<T>>>,
