@@ -3,4 +3,5 @@
 use super::{Tree,Forest};
 use crate::rust::*;
 
-include!( "../notation.rs" );
+//include!( "../notation.rs" );
+include!( "./notation_impl.rs" );

@@ -15,10 +15,6 @@ impl<T> Deref for Forest<T> {
     fn deref( &self ) -> &Link { &self.link }
 }
 
-impl<T> DerefMut for Forest<T> {
-    fn deref_mut( &mut self ) -> &mut Link { &mut self.link }
-}
-
 impl<T> Forest<T> {
     /// Makes an empty `Forest`
     #[inline] pub fn new() -> Forest<T> { Self::from( null_mut() )}
@@ -37,6 +33,8 @@ impl<T> Forest<T> {
     /// assert!( !forest.is_empty() );
     /// ```
     #[inline] pub fn is_empty( &self ) -> bool { self.link.is_leaf() }
+
+    #[inline] pub(crate) fn link_mut( &mut self ) -> &mut Link { &mut self.link }
 
     #[inline] pub(crate) fn from( child: *mut Link ) -> Self {
         Forest{
@@ -61,11 +59,11 @@ impl<T> Forest<T> {
 
     /// Returns a mutable pointer to the first child of the forest,
     /// or None if it is empty.
-    pub fn first_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn first_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_empty() {
             None
         } else {
-            unsafe { Some( &mut *( self.head() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.head() as *mut Node<T> )))}
         }
     }
 
@@ -81,11 +79,11 @@ impl<T> Forest<T> {
 
     /// Returns a mutable pointer to the last child of the forest,
     /// or None if it is empty.
-    pub fn last_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn last_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_empty() {
             None
         } else {
-            unsafe { Some( &mut *( self.tail() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.tail() as *mut Node<T> )))}
         }
     }
 
@@ -102,12 +100,12 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.to_string(), "( 2 1 )" );
     /// ```
     #[inline] pub fn push_front( &mut self, mut tree: Tree<T> ) {
-        let tree_root = tree.root_mut().plink();
+        let tree_root = tree.root_mut_().plink();
         if self.is_empty() {
-            self.set_child( tree_root );
+            self.link_mut().set_child( tree_root );
         } else { unsafe {
-            tree.set_sib( self.head() );
-            self.adopt( tree_root );
+            tree.link_mut().set_sib( self.head() );
+            self.link_mut().adopt( tree_root );
         }}
         tree.clear();
     }
@@ -125,14 +123,14 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.to_string(), "( 1 2 )" );
     /// ```
     #[inline] pub fn push_back( &mut self, mut tree: Tree<T> ) {
-        let tree_root = tree.root_mut().plink();
+        let tree_root = tree.root_mut_().plink();
         if !self.is_empty() {
             unsafe {
-                tree.set_sib( self.head() );
-                self.adopt( tree_root );
+                tree.link_mut().set_sib( self.head() );
+                self.link_mut().adopt( tree_root );
             }
         }
-        self.set_child( tree_root );
+        self.link_mut().set_child( tree_root );
         tree.clear();
     }
 
@@ -178,11 +176,11 @@ impl<T> Forest<T> {
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_empty() {
-                self.set_child( forest.tail() );
+                self.link_mut().set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.adopt( forest_head );
+                self.link_mut().adopt( forest_head );
             }}
             forest.clear();
         }
@@ -205,9 +203,9 @@ impl<T> Forest<T> {
             if !self.is_empty() { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.adopt( forest_head );
+                self.link_mut().adopt( forest_head );
             }}
-            self.set_child( forest.tail() );
+            self.link_mut().set_child( forest.tail() );
             forest.clear();
         }
     }
@@ -248,7 +246,7 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.iter_mut().next(), None );
     ///
     /// let mut forest = -tr(1)-tr(2);
-    /// for child in forest.iter_mut() { child.data *= 10; }
+    /// for mut child in forest.iter_mut() { child.data *= 10; }
     /// assert_eq!( forest.to_string(), "( 10 20 )" );
     /// ```
     #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {

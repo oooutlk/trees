@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn tree_extend() {
         let mut tree = tr(0) /tr(1);
-        tree.extend( tr(2)-tr(3) );
+        tree.root_mut_().extend( tr(2)-tr(3) );
         assert_eq!( tree, tr(0) /tr(1)/tr(2)/tr(3) );
     }
 
@@ -125,8 +125,7 @@ mod tests {
             assert_eq!( forest.to_string(), "( 1 2 )" );
         }
         {
-            let forest: &mut Forest<_> = tree.borrow_mut();
-            for node in forest.iter_mut() {
+            for mut node in tree.root_mut().forest_mut_().iter_mut() {
                 node.data *= 10;
             }
         }

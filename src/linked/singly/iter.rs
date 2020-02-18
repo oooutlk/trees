@@ -71,13 +71,13 @@ impl<'a, T> Clone for Iter<'a, T> {
 pub struct IterMut<'a, T:'a> {
     head : *mut Link,
     tail : *mut Link,
-    mark : PhantomData<&'a mut Node<T>>,
+    mark : PhantomData<Pin<&'a mut Node<T>>>,
 }
 
 impl<'a, T:'a> Iterator for IterMut<'a, T> {
-    type Item = &'a mut Node<T>;
+    type Item = Pin<&'a mut Node<T>>;
 
-    #[inline] fn next( &mut self ) -> Option<&'a mut Node<T>> {
+    #[inline] fn next( &mut self ) -> Option<Pin<&'a mut Node<T>>> {
         if self.head.is_null() {
              None
         } else { unsafe {
@@ -87,7 +87,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
             } else {
                 (*node).next
             };
-            Some( &mut *( node as *mut Node<T> ))
+            Some( Pin::new_unchecked( &mut *( node as *mut Node<T> )))
         }}
     }
 
@@ -106,8 +106,8 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
     }
 }
 
-impl<'a,T> ExactSizeIterator for IterMut<'a, T> {}
-impl<'a,T> FusedIterator for IterMut<'a, T> {}
+impl<'a, T> ExactSizeIterator for IterMut<'a, T> {}
+impl<'a, T> FusedIterator for IterMut<'a, T> {}
 
 impl<'a, T:'a> IterMut<'a, T> {
     #[inline] pub(crate) fn new( head: *mut Link, tail: *mut Link ) -> Self {

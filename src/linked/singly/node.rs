@@ -20,10 +20,6 @@ impl<T> Deref for Node<T> {
     fn deref( &self ) -> &Link { &self.link }
 }
 
-impl<T> DerefMut for Node<T> {
-    fn deref_mut( &mut self ) -> &mut Link { &mut self.link }
-}
-
 impl Link {
     #[inline] pub(crate) fn set_child( &mut self, child: *mut Self ) { self.child = child; }
     #[inline] pub(crate) fn reset_child( &mut self ) { self.set_child( null_mut() ); }
@@ -45,8 +41,9 @@ impl<T> Node<T> {
     #[inline] pub fn is_leaf( &self ) -> bool { self.link.is_leaf() }
 
     #[inline] pub(crate) fn plink( &mut self ) -> *mut Link { &mut self.link as *mut Link }
+    #[inline] pub(crate) fn link_mut( &mut self ) -> &mut Link { &mut self.link }
 
-    /// Returns the given `Tree`'s children as a borrowed `Forest`.
+    /// Returns the given `Node`'s children as a borrowed `Forest`.
     ///
     /// # Examples
     ///
@@ -59,21 +56,25 @@ impl<T> Node<T> {
         unsafe{ &*( &self.link as *const Link as *const Forest<T> )}
     }
 
-    /// Returns the given `Tree`'s children as a mutable borrowed `Forest`.
+    /// Returns the given `Node`'s children as a mutable borrowed `Forest`.
     ///
     /// # Examples
     ///
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// for child in tree.forest_mut().iter_mut() { child.data *= 10; }
+    /// for mut child in tree.root_mut().forest_mut().iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
     /// ```
-    #[inline] pub fn forest_mut( &mut self ) -> &mut Forest<T> {
+    #[inline] pub fn forest_mut( &mut self ) -> Pin<&mut Forest<T>> {
+        unsafe{ Pin::new_unchecked( self.forest_mut_() )}
+    }
+
+    #[inline] pub(crate) fn forest_mut_( &mut self ) -> &mut Forest<T> {
         unsafe{ &mut *( self.plink() as *mut Forest<T> )}
     }
 
-    /// Returns the first child of the forest,
+   /// Returns the first child of the forest,
     /// or None if it is empty.
     pub fn first( &self ) -> Option<&Node<T>> {
         if self.is_leaf() {
@@ -85,11 +86,11 @@ impl<T> Node<T> {
 
     /// Returns a mutable pointer to the first child of the forest,
     /// or None if it is empty.
-    pub fn first_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn first_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_leaf() {
             None
         } else {
-            unsafe { Some( &mut *( self.head() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.head() as *mut Node<T> )))}
         }
     }
 
@@ -105,11 +106,11 @@ impl<T> Node<T> {
 
     /// Returns a mutable pointer to the last child of the forest,
     /// or None if it is empty.
-    pub fn last_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn last_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_leaf() {
             None
         } else {
-            unsafe { Some( &mut *( self.tail() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.tail() as *mut Node<T> )))}
         }
     }
 
@@ -120,19 +121,19 @@ impl<T> Node<T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0);
-    /// tree.push_front( tr(1) );
+    /// tree.root_mut().push_front( tr(1) );
     /// assert_eq!( tree.to_string(), "0( 1 )" );
-    /// tree.push_front( tr(2) );
+    /// tree.root_mut().push_front( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 2 1 )" );
     /// ```
     #[inline] pub fn push_front( &mut self, mut tree: Tree<T> ) {
         unsafe {
-            let tree_root = tree.root_mut().plink();
+            let tree_root = tree.root_mut_().plink();
             if self.is_leaf() {
-                self.set_child( tree_root );
+                self.link.set_child( tree_root );
             } else {
-                tree.set_sib( self.head() );
-                self.adopt( tree_root );
+                tree.link_mut().set_sib( self.head() );
+                self.link_mut().adopt( tree_root );
             }
         }
         tree.clear();
@@ -145,19 +146,19 @@ impl<T> Node<T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0);
-    /// tree.push_back( tr(1) );
+    /// tree.root_mut().push_back( tr(1) );
     /// assert_eq!( tree.to_string(), "0( 1 )" );
-    /// tree.push_back( tr(2) );
+    /// tree.root_mut().push_back( tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
     /// ```
     #[inline] pub fn push_back( &mut self, mut tree: Tree<T> ) {
         unsafe {
-            let tree_root = tree.root_mut().plink();
+            let tree_root = tree.root_mut_().plink();
             if !self.is_leaf() {
-                tree.set_sib( self.head() );
-                self.adopt( tree_root );
+                tree.link_mut().set_sib( self.head() );
+                self.link_mut().adopt( tree_root );
             }
-            self.set_child( tree_root );
+            self.link_mut().set_child( tree_root );
         }
         tree.clear();
     }
@@ -169,9 +170,9 @@ impl<T> Node<T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// assert_eq!( tree.pop_front(), Some( tr(1) ));
+    /// assert_eq!( tree.root_mut().pop_front(), Some( tr(1) ));
     /// assert_eq!( tree.to_string(), "0( 2 )" );
-    /// assert_eq!( tree.pop_front(), Some( tr(2) ));
+    /// assert_eq!( tree.root_mut().pop_front(), Some( tr(2) ));
     /// assert_eq!( tree.to_string(), "0" );
     /// ```
     #[inline] pub fn pop_front( &mut self ) -> Option<Tree<T>> {
@@ -180,7 +181,7 @@ impl<T> Node<T> {
         } else { unsafe {
             let front = self.head();
             if self.has_only_one_child() {
-                self.reset_child();
+                self.link_mut().reset_child();
             } else {
                 (*self.tail()).set_sib( self.new_head() );
             }
@@ -197,19 +198,19 @@ impl<T> Node<T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0);
-    /// tree.prepend( -tr(1)-tr(2) );
+    /// tree.root_mut().prepend( -tr(1)-tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
-    /// tree.prepend( -tr(3)-tr(4) );
+    /// tree.root_mut().prepend( -tr(3)-tr(4) );
     /// assert_eq!( tree.to_string(), "0( 3 4 1 2 )" );
     /// ```
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_leaf() {
-                self.set_child( forest.tail() );
+                self.link_mut().set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.adopt( forest_head );
+                self.link_mut().adopt( forest_head );
             }}
             forest.clear();
         }
@@ -222,20 +223,20 @@ impl<T> Node<T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0);
-    /// tree.append( -tr(1)-tr(2) );
+    /// tree.root_mut().append( -tr(1)-tr(2) );
     /// assert_eq!( tree.to_string(), "0( 1 2 )" );
-    /// tree.append( -tr(3)-tr(4) );
+    /// tree.root_mut().append( -tr(3)-tr(4) );
     /// assert_eq!( tree.to_string(), "0( 1 2 3 4 )" );
     /// ```
     #[inline] pub fn append( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_leaf() {
-                self.set_child( forest.tail() );
+                self.link_mut().set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.adopt( forest_head );
-                self.set_child( forest.tail() );
+                self.link_mut().adopt( forest_head );
+                self.link_mut().set_child( forest.tail() );
             }}
             forest.clear();
         }
@@ -274,10 +275,10 @@ impl<T> Node<T> {
     /// use trees::linked::singly::tr;
     ///
     /// let mut tree = tr(0);
-    /// assert_eq!( tree.iter_mut().next(), None );
+    /// assert_eq!( tree.root_mut().iter_mut().next(), None );
     ///
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// for child in tree.iter_mut() { child.data *= 10; }
+    /// for mut child in tree.root_mut().iter_mut() { child.data *= 10; }
     /// assert_eq!( tree.to_string(), "0( 10 20 )" );
     /// ```
     #[inline] pub fn iter_mut<'a, 's:'a>( &'s mut self ) -> IterMut<'a,T> {
@@ -342,18 +343,11 @@ impl<T> Node<T> {
     /// use trees::linked::singly::tr;
     ///
     /// let mut tree = tr(0) /( tr(1)/tr(2)/tr(3) ) /( tr(4)/tr(5)/tr(6) );
-    /// let visits = tree.root_mut().bfs_mut().iter.collect::<Vec<_>>();
-    /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: &mut 0, size: Size{ degree: 2, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 1, size: Size{ degree: 2, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 4, size: Size{ degree: 2, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 2, size: Size{ degree: 0, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 3, size: Size{ degree: 0, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 5, size: Size{ degree: 0, node_cnt: 0 }},
-    ///     bfs::Visit{ data: &mut 6, size: Size{ degree: 0, node_cnt: 0 }},
-    /// ]);
+    /// let mut root = tree.root_mut();
+    /// root.bfs_mut().iter.zip( 0.. ).for_each( |(visit,nth)| (*visit.data) += 10 * nth );
+    /// assert_eq!( tree, tr(0) /( tr(11)/tr(32)/tr(43) ) /( tr(24)/tr(55)/tr(66) ));
     /// ```
-    pub fn bfs_mut( &mut self ) -> BfsTree<Splitted<IterMut<T>>> { BfsTree::from( self, Size{ degree:1, node_cnt:0 })}
+    pub fn bfs_mut( &mut self ) -> BfsTree<Splitted<IterMut<T>>> { BfsTree::from( unsafe{ Pin::new_unchecked( self )}, Size{ degree:1, node_cnt:0 })}
 }
 
 impl<'a, T:'a> Split for &'a Node<T> {
@@ -365,12 +359,17 @@ impl<'a, T:'a> Split for &'a Node<T> {
     }
 }
 
-impl<'a, T:'a> Split for &'a mut Node<T> {
+impl<'a, T:'a> Split for Pin<&'a mut Node<T>> {
     type Item = &'a mut T;
     type Iter = IterMut<'a,T>;
 
     fn split( self ) -> ( &'a mut T, IterMut<'a,T>, u32 ) {
-        unsafe{ ( &mut *( &mut self.data as *mut T ), self.iter_mut(), 0 )} // borrow two mutable references at one time
+        unsafe {
+            let node_mut = self.get_unchecked_mut();
+            let data = &mut *( &mut node_mut.data as *mut T );
+            let iter = node_mut.iter_mut();
+            ( data, iter, 0 ) // borrow two mutable references at one time
+        }
     }
 }
 
@@ -384,12 +383,12 @@ impl<'a, T:'a> IntoIterator for &'a Node<T> {
     }
 }
 
-impl<'a, T:'a> IntoIterator for &'a mut Node<T> {
+impl<'a, T:'a> IntoIterator for Pin<&'a mut Node<T>> {
     type Item = Self;
     type IntoIter = IterMut<'a,T>;
 
     #[inline] fn into_iter( self ) -> Self::IntoIter {
-        let link = self.plink();
+        let link = unsafe{ self.get_unchecked_mut().plink() };
         IterMut::new( link, link )
     }
 }
@@ -399,7 +398,7 @@ impl<T:Clone> ToOwned for Node<T> {
     fn to_owned( &self ) -> Self::Owned {
         let mut tree = Tree::new( self.data.clone() );
         for child in self.iter() {
-            tree.push_back( child.to_owned() );
+            tree.root_mut_().push_back( child.to_owned() );
         }
         tree
     }
@@ -414,7 +413,6 @@ impl<T> Extend<Tree<T>> for Node<T> {
 }
 
 impl<T> Borrow<Forest<T>> for Tree<T> { fn borrow( &self ) -> &Forest<T> { self.forest() }}
-impl<T> BorrowMut<Forest<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Forest<T> { self.forest_mut() }}
 
 impl<T:Debug> Debug for Node<T> {
     fn fmt( &self, f: &mut Formatter ) -> fmt::Result {

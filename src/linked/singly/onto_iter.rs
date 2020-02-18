@@ -20,13 +20,13 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// for mut sub in tree.onto_iter() { sub.insert_before( tr(3) ); }
+    /// for mut sub in tree.root_mut().onto_iter() { sub.insert_before( tr(3) ); }
     /// assert_eq!( tree.to_string(), "0( 3 1 3 2 )" );
     /// ```
     #[inline] pub fn insert_before( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            sib.root_mut().set_sib( self.node.plink() );
-            (*self.prev).set_sib( sib.root_mut().plink() );
+            sib.link_mut().set_sib( self.node.plink() );
+            (*self.prev).set_sib( sib.root_mut_().plink() );
         }
         sib.clear();
     }
@@ -39,15 +39,15 @@ impl<'a, T:'a> Subnode<'a,T> {
     /// ```
     /// use trees::linked::singly::tr;
     /// let mut tree = tr(0) /tr(1)/tr(2);
-    /// for mut sub in tree.onto_iter() { sub.insert_after( tr(3) ); }
+    /// for mut sub in tree.root_mut().onto_iter() { sub.insert_after( tr(3) ); }
     /// assert_eq!( tree.to_string(), "0( 1 3 2 3 )" );
     /// ```
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
-            (*sib.root_mut()).set_sib( self.node.next );
-            self.node.set_sib( sib.root_mut().plink() );
+            (*sib.link_mut()).set_sib( self.node.next );
+            self.node.link_mut().set_sib( sib.root_mut_().plink() );
             if (*self.parent).tail() == self.node.plink() {
-                (*self.parent).set_child( sib.root_mut().plink() );
+                (*self.parent).set_child( sib.root_mut_().plink() );
             }
         }
         sib.clear();
@@ -70,7 +70,7 @@ impl<'a, T:'a> Subnode<'a,T> {
                 (*self.parent).set_child( if self.node.has_no_sib() { null_mut() } else { self.prev });
             }
             (*self.prev).set_sib( self.node.next );
-            self.node.reset_sib();
+            self.node.link_mut().reset_sib();
             Tree::from( self.node.plink() )
         }
     }
@@ -81,8 +81,6 @@ impl<'a, T:'a> Deref for Subnode<'a,T> {
     fn deref( &self ) -> &Node<T> { self.node }
 }
 
-impl<'a, T:'a> DerefMut for Subnode<'a,T> { fn deref_mut( &mut self ) -> &mut Node<T> { self.node }}
-
 /// Mutable iterator allowing modification of parent or sib links.
 pub struct OntoIter<'a, T:'a>{
     pub(crate) next   : *mut Link,
@@ -90,7 +88,7 @@ pub struct OntoIter<'a, T:'a>{
     pub(crate) prev   : *mut Link,
     pub(crate) child  : *mut Link,
     pub(crate) parent : *mut Link,
-    pub(crate) mark   : PhantomData<&'a mut Node<T>>,
+    pub(crate) mark   : PhantomData<Pin<&'a mut Node<T>>>,
 }
 
 impl<'a, T:'a> Iterator for OntoIter<'a,T> {
