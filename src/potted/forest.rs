@@ -12,12 +12,12 @@ pub struct Forest<T> {
 
 impl<T> Forest<T> {
     fn node( &self, index: usize ) -> &Node<T> { &self.pot[ index ]}
-    fn node_mut( &mut self, index: usize ) -> &mut Node<T> { &mut self.pot[ index ]}
+    fn node_mut( &mut self, index: usize ) -> &mut Node<T> { &mut self.pot.modify()[ index ]}
 
     /// Makes an empty `Forest`.
     pub fn new() -> Self {
         let mut pot = Pot::new_forest();
-        pot.push( fake_root() );
+        pot.modify().push( fake_root() );
         Forest{ pot }
     }
 
@@ -101,7 +101,7 @@ impl<T> Forest<T> {
     /// use trees::potted::{Forest,TreeData,TupleForest,fr};
     ///
     /// let mut forest: Forest<_> = ( fr(), 1, 2, 3 ).into();
-    /// for child in forest.iter_mut() {
+    /// for mut child in forest.iter_mut() {
     ///     child.data *= 10;
     /// }
     /// assert_eq!( forest.to_string(), "( 10 20 30 )" );
@@ -224,9 +224,9 @@ impl<T> Forest<T> {
     /// forest.nth_child_mut(2).unwrap().data = "C";
     /// assert_eq!( forest.to_string(), "( a b C d e )" );
     /// ```
-    pub fn nth_child_mut( &mut self, n: usize ) -> Option<&mut Node<T>> {
+    pub fn nth_child_mut( &mut self, n: usize ) -> Option<Pin<&mut Node<T>>> {
         let mut pot = self.pot;
-        pot.nth_child( ROOT, n ).map( |index| unsafe{ transmute( &mut pot[ index ])})
+        pot.nth_child( ROOT, n ).map( |index| unsafe{ Pin::new_unchecked( transmute( &mut pot.modify()[ index ]))})
     }
 
     /// Add the tuple tree as the first child.
@@ -466,7 +466,7 @@ impl<T> Default for Forest<T> { #[inline] fn default() -> Self { Self::new() }}
 impl<T> Drop for Forest<T> {
     fn drop( &mut self ) {
         if !self.pot.is_empty() {
-            self.iter_mut().for_each( |node| node.drop_all_data_if_needed() );
+            self.iter_mut().for_each( |node| unsafe{ Pin::get_unchecked_mut( node ).drop_all_data_if_needed() });
         }
         unsafe{ Pot::drop( self.pot ); }
     }

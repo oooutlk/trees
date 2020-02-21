@@ -12,7 +12,8 @@ pub struct Tree<T> {
 
 impl<T> Tree<T> {
     pub fn root( &self ) -> &Node<T> { &self.pot[ ROOT ]}
-    pub fn root_mut( &mut self ) -> &mut Node<T> { &mut self.pot[ ROOT ]}
+    pub fn root_mut( &mut self ) -> Pin<&mut Node<T>> { unsafe{ Pin::new_unchecked( &mut self.pot.modify()[ ROOT ])}}
+    pub(crate) fn root_mut_( &mut self ) -> &mut Node<T> { &mut self.pot.modify()[ ROOT ]}
 
     /// Break the tree into root's data and the children forest.
     ///
@@ -27,7 +28,7 @@ impl<T> Tree<T> {
     /// assert_eq!( forest.to_string(), "( 2( 3 4 ) 5( 6 7 ) )" );
     /// ```
     pub fn abandon( mut self ) -> ( T, Forest<T> ) {
-        self.root_mut().size.node_cnt -= 1;
+        self.root_mut_().size.node_cnt -= 1;
         let root_data = unsafe{ ptr::read( self.root() ).data };
         let mut pot = self.pot;
         pot.set_forest_pot();
@@ -68,15 +69,10 @@ impl<T> Tree<T> {
 }
 
 impl<T> Borrow<Node<T>> for Tree<T> { fn borrow( &self ) -> &Node<T> { self.root() }}
-impl<T> BorrowMut<Node<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Node<T> { self.root_mut() }}
 
 impl<T> Deref for Tree<T> {
     type Target = Node<T>;
     fn deref( &self ) -> &Node<T> { &*self.root() }
-}
-
-impl<T> DerefMut for Tree<T> {
-    fn deref_mut( &mut self ) -> &mut Node<T> { &mut *self.root_mut() }
 }
 
 impl<T,Tuple> From<Tuple> for Tree<T>
@@ -95,7 +91,7 @@ impl<T,Iter> From<BfsTree<Iter>> for Tree<T>
 {
     fn from( tree_iter: BfsTree<Iter> ) -> Self {
         let mut pot = Pot::new_tree();
-        pot[ NULL ].append_bfs( tree_iter.wrap() );
+        pot.modify()[ NULL ].append_bfs( tree_iter.wrap() );
         Tree{ pot }
     }
 }
@@ -103,7 +99,7 @@ impl<T,Iter> From<BfsTree<Iter>> for Tree<T>
 impl<T> Drop for Tree<T> {
     fn drop( &mut self ) {
         if self.pot.new_index() != 0 {
-            self.root_mut().drop_all_data_if_needed();
+            self.root_mut_().drop_all_data_if_needed();
         }
         unsafe{ Pot::drop( self.pot ); }
     }

@@ -41,7 +41,6 @@ impl<T> Node<T> {
     #[inline] pub fn is_leaf( &self ) -> bool { self.link.is_leaf() }
 
     #[inline] pub(crate) fn plink( &mut self ) -> *mut Link { &mut self.link as *mut Link }
-    #[inline] pub(crate) fn link_mut( &mut self ) -> &mut Link { &mut self.link }
 
     /// Returns the given `Node`'s children as a borrowed `Forest`.
     ///
@@ -133,7 +132,7 @@ impl<T> Node<T> {
                 self.link.set_child( tree_root );
             } else {
                 tree.link_mut().set_sib( self.head() );
-                self.link_mut().adopt( tree_root );
+                self.link.adopt( tree_root );
             }
         }
         tree.clear();
@@ -156,9 +155,9 @@ impl<T> Node<T> {
             let tree_root = tree.root_mut_().plink();
             if !self.is_leaf() {
                 tree.link_mut().set_sib( self.head() );
-                self.link_mut().adopt( tree_root );
+                self.link.adopt( tree_root );
             }
-            self.link_mut().set_child( tree_root );
+            self.link.set_child( tree_root );
         }
         tree.clear();
     }
@@ -181,7 +180,7 @@ impl<T> Node<T> {
         } else { unsafe {
             let front = self.head();
             if self.has_only_one_child() {
-                self.link_mut().reset_child();
+                self.link.reset_child();
             } else {
                 (*self.tail()).set_sib( self.new_head() );
             }
@@ -206,11 +205,11 @@ impl<T> Node<T> {
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_leaf() {
-                self.link_mut().set_child( forest.tail() );
+                self.link.set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.link_mut().adopt( forest_head );
+                self.link.adopt( forest_head );
             }}
             forest.clear();
         }
@@ -231,12 +230,12 @@ impl<T> Node<T> {
     #[inline] pub fn append( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_leaf() {
-                self.link_mut().set_child( forest.tail() );
+                self.link.set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.link_mut().adopt( forest_head );
-                self.link_mut().set_child( forest.tail() );
+                self.link.adopt( forest_head );
+                self.link.set_child( forest.tail() );
             }}
             forest.clear();
         }
@@ -414,15 +413,23 @@ impl<T> Extend<Tree<T>> for Node<T> {
 
 impl<T> Borrow<Forest<T>> for Tree<T> { fn borrow( &self ) -> &Forest<T> { self.forest() }}
 
+impl Debug for Link {
+    fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
+            write!( f, "{{ @{:?} ↓{:?} →{:?} }}", self as *const _, self.child, self.next )
+    }
+}
+
 impl<T:Debug> Debug for Node<T> {
     fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
         if self.is_leaf() {
-            self.data.fmt(f)
+            self.data.fmt(f)?;
+            self.link.fmt(f)
         } else {
             self.data.fmt(f)?;
+            self.link.fmt(f)?;
             write!( f, "( " )?;
             for child in self.iter() {
-                write!( f, "{:?} ", child )?;
+                child.fmt(f)?;
             }
             write!( f, ")" )
         }

@@ -19,7 +19,7 @@ pub(crate) fn make_node<T>( data: T ) -> *mut Node<T> {
             data,
         }
     );
-    node.reset_sib();
+    node.link.reset_sib();
     Box::into_raw( node )
 }
 

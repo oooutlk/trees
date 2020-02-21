@@ -34,8 +34,6 @@ impl<T> Forest<T> {
     /// ```
     #[inline] pub fn is_empty( &self ) -> bool { self.link.is_leaf() }
 
-    #[inline] pub(crate) fn link_mut( &mut self ) -> &mut Link { &mut self.link }
-
     #[inline] pub(crate) fn from( child: *mut Link ) -> Self {
         Forest{
             link: Link{ next: null_mut(), child },
@@ -102,10 +100,10 @@ impl<T> Forest<T> {
     #[inline] pub fn push_front( &mut self, mut tree: Tree<T> ) {
         let tree_root = tree.root_mut_().plink();
         if self.is_empty() {
-            self.link_mut().set_child( tree_root );
+            self.link.set_child( tree_root );
         } else { unsafe {
             tree.link_mut().set_sib( self.head() );
-            self.link_mut().adopt( tree_root );
+            self.link.adopt( tree_root );
         }}
         tree.clear();
     }
@@ -127,10 +125,10 @@ impl<T> Forest<T> {
         if !self.is_empty() {
             unsafe {
                 tree.link_mut().set_sib( self.head() );
-                self.link_mut().adopt( tree_root );
+                self.link.adopt( tree_root );
             }
         }
-        self.link_mut().set_child( tree_root );
+        self.link.set_child( tree_root );
         tree.clear();
     }
 
@@ -176,11 +174,11 @@ impl<T> Forest<T> {
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_empty() {
-                self.link_mut().set_child( forest.tail() );
+                self.link.set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.link_mut().adopt( forest_head );
+                self.link.adopt( forest_head );
             }}
             forest.clear();
         }
@@ -203,9 +201,9 @@ impl<T> Forest<T> {
             if !self.is_empty() { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.head() );
-                self.link_mut().adopt( forest_head );
+                self.link.adopt( forest_head );
             }}
-            self.link_mut().set_child( forest.tail() );
+            self.link.set_child( forest.tail() );
             forest.clear();
         }
     }

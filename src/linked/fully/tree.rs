@@ -17,7 +17,9 @@ impl<T> Tree<T> {
     #[inline] pub fn new( data: T ) -> Self { Self::from( heap::make_node( data ) as *mut Link )}
 
     #[inline] pub fn root( &self ) -> &Node<T> { unsafe { & *self.root }}
-    #[inline] pub fn root_mut( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
+    #[inline] pub fn root_mut( &mut self ) -> Pin<&mut Node<T>> { unsafe{ Pin::new_unchecked( self.root_mut_() )}}
+    #[inline] pub(crate)  fn root_mut_( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
+    #[inline] pub(crate) fn link_mut( &mut self ) -> &mut Link { unsafe{ &mut (*self.root).link }}
 
     #[inline] fn into_data( self ) -> T {
         let data = unsafe{ ptr::read( &self.root().data )};
@@ -37,9 +39,9 @@ impl<T> Tree<T> {
     /// ```
     #[inline] pub fn abandon( &mut self ) -> Forest<T> {
         let forest = Forest::<T>::from( self.root().tail(), self.root().size );
-        self.root_mut().reset_child();
-        self.size.degree = 0;
-        self.size.node_cnt = 1;
+        self.link_mut().reset_child();
+        self.link_mut().size.degree = 0;
+        self.link_mut().size.node_cnt = 1;
         forest
     }
 
@@ -95,15 +97,10 @@ impl<T> IntoIterator for Tree<T> {
 }
 
 impl<T> Borrow<Node<T>> for Tree<T> { fn borrow( &self ) -> &Node<T> { self.root() }}
-impl<T> BorrowMut<Node<T>> for Tree<T> { fn borrow_mut( &mut self ) -> &mut Node<T> { self.root_mut() }}
 
 impl<T> Deref for Tree<T> {
     type Target = Node<T>;
     fn deref( &self ) -> &Node<T> { unsafe { &*self.root }}
-}
-
-impl<T> DerefMut for Tree<T> {
-    fn deref_mut( &mut self ) -> &mut Node<T> { unsafe { &mut *self.root }}
 }
 
 impl<T:Clone> Clone for Tree<T> { fn clone( &self ) -> Self { self.root().to_owned() }}
@@ -111,13 +108,13 @@ impl<T:Clone> Clone for Tree<T> { fn clone( &self ) -> Self { self.root().to_own
 impl<T> Drop for Tree<T> {
     fn drop( &mut self ) {
         if !self.root.is_null() {
-            while let Some(_) = self.pop_front() {}
+            while let Some(_) = self.root_mut_().pop_front() {}
             heap::drop_node( self.root );
         }
     }
 }
 
-impl<T:Debug> Debug for Tree<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result { write!( f, "{:?}", self.root() )}}
+impl<T:Debug> Debug for Tree<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result { self.root().fmt(f) }}
 
 impl<T:Display> Display for Tree<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result { write!( f, "{}", self.root() )}}
 

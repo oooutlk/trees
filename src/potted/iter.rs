@@ -61,7 +61,7 @@ pub struct IterMut<'a, T:'a> {
     len    : usize,
     fr_len : usize, // forest len
     pot    : Pot<T>,
-    mark   : PhantomData<&'a mut Node<T>>,
+    mark   : PhantomData<Pin<&'a mut Node<T>>>,
 }
 
 impl<'a, T:'a> IterMut<'a, T> {
@@ -73,7 +73,7 @@ impl<'a, T:'a> IterMut<'a, T> {
 }
 
 impl<'a, T:'a> Iterator for IterMut<'a, T> {
-    type Item = &'a mut Node<T>;
+    type Item = Pin<&'a mut Node<T>>;
 
     #[inline] fn next( &mut self ) -> Option<Self::Item> {
         if self.len == 0 {
@@ -85,7 +85,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
             if pot.is_forest( index ) {
                 self.fr_len = pot.degree( index );
                 self.head = pot.tail( self.head );
-                return Some( unsafe{ transmute( &mut pot[ self.head ])});
+                return Some( unsafe{ transmute( &mut pot.modify()[ self.head ])});
             } else if self.fr_len != 0 {
                 self.fr_len -= 1;
                 if self.fr_len == 0 {
@@ -93,7 +93,7 @@ impl<'a, T:'a> Iterator for IterMut<'a, T> {
                 }
             }
             self.advance();
-            Some( unsafe{ transmute( &mut pot[ index ])})
+            Some( unsafe{ Pin::new_unchecked( transmute( &mut pot.modify()[ index ]))})
         }
     }
 

@@ -88,7 +88,7 @@ impl<T> Div<Forest<T>> for Tree<T> {
 
     #[inline]
     fn div( mut self, rhs: Forest<T> ) -> Tree<T> {
-        self.append( rhs );
+        self.root_mut_().append( rhs );
         self
     } 
 }
@@ -99,7 +99,7 @@ impl<'a,T:Clone> Div<&'a Forest<T>> for Tree<T> {
 
     #[inline]
     fn div( mut self, rhs: &'a Forest<T> ) -> Tree<T> {
-        self.append( rhs.clone() );
+        self.root_mut_().append( rhs.clone() );
         self
     } 
 }
@@ -111,7 +111,7 @@ impl<'a,T:Clone> Div<Forest<T>> for &'a Tree<T> {
     #[inline]
     fn div( self, rhs: Forest<T> ) -> Tree<T> {
         let mut tree = self.clone();
-        tree.append( rhs );
+        tree.root_mut_().append( rhs );
         tree
     } 
 }
@@ -123,7 +123,7 @@ impl<'a,T:Clone> Div<&'a Forest<T>> for &'a Tree<T> {
     #[inline]
     fn div( self, rhs: &'a Forest<T> ) -> Tree<T> {
         let mut tree = self.clone();
-        tree.append( rhs.clone() );
+        tree.root_mut_().append( rhs.clone() );
         tree
     } 
 }
@@ -134,7 +134,7 @@ impl<T> Div<Tree<T>> for Tree<T> {
 
     #[inline]
     fn div( mut self, rhs: Tree<T> ) -> Tree<T> {
-        self.push_back( rhs );
+        self.root_mut_().push_back( rhs );
         self
     } 
 }
@@ -145,7 +145,7 @@ impl<'a,T:Clone> Div<&'a Tree<T>> for Tree<T> {
 
     #[inline]
     fn div( mut self, rhs: &'a Tree<T> ) -> Tree<T> {
-        self.push_back( rhs.clone() );
+        self.root_mut_().push_back( rhs.clone() );
         self
     } 
 }
@@ -157,7 +157,7 @@ impl<'a,T:Clone> Div<Tree<T>> for &'a Tree<T> {
     #[inline]
     fn div( self, rhs: Tree<T> ) -> Tree<T> {
         let mut tree = self.clone();
-        tree.push_back( rhs );
+        tree.root_mut_().push_back( rhs );
         tree
     } 
 }
@@ -169,7 +169,7 @@ impl<'a,T:Clone> Div<Self> for &'a Tree<T> {
     #[inline]
     fn div( self, rhs: Self ) -> Tree<T> {
         let mut tree = self.clone();
-        tree.push_back( rhs.clone() );
+        tree.root_mut_().push_back( rhs.clone() );
         tree
     } 
 }

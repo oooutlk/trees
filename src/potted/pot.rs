@@ -16,30 +16,32 @@ impl<T> Deref for Pot<T> {
     fn deref( &self ) -> &Self::Target { unsafe{ self.nodes.as_ref() }}
 }
 
-impl<T> DerefMut for Pot<T> {
-    fn deref_mut( &mut self ) -> &mut Self::Target { unsafe{ self.nodes.as_mut() }}
-}
-
 impl<T> Pot<T> {
+    pub(crate) fn modify( &mut self ) -> &mut Pool<Node<T>> { unsafe{ self.nodes.as_mut() }}
+
     #[inline] pub(crate) fn new_tree() -> Self {
-        let mut pool = Pool::new_unmanaged();
-        pool.push( tree_null() );
-        Pot{ nodes: unsafe{ NonNull::new_unchecked( Box::into_raw( pool ))}}
+        let pool: Pin<Box<Pool<Node<T>>>> = Pool::new_unmanaged();
+        let mut non_null = pool.non_null();
+        unsafe{ (*non_null.as_mut()).push( tree_null() ); }
+        mem::forget( pool );
+        Pot{ nodes: non_null }
     }
 
     #[inline] pub(crate) fn new_forest() -> Self {
-        let mut pool = Pool::new_unmanaged();
-        pool.push( forest_null() );
-        Pot{ nodes: unsafe{ NonNull::new_unchecked( Box::into_raw( pool ))}}
+        let pool = Pool::new_unmanaged();
+        let mut non_null = pool.non_null();
+        unsafe{ (*non_null.as_mut()).push( forest_null() ); }
+        mem::forget( pool );
+        Pot{ nodes: non_null }
     }
 
     #[inline] pub(crate) fn grow( &mut self, node_cnt: usize ) {
         let len = self.len();
         let cap = self.capacity();
         if len + node_cnt > cap {
-            self.reserve( len + node_cnt - cap );
+            self.modify().reserve( len + node_cnt - cap );
         }
-        unsafe{ self.set_len( len + node_cnt ); }
+        unsafe{ self.modify().set_len( len + node_cnt ); }
     }
 
     // unsafe push_back, no update on parent's `degree` or propagation of `node_cnt`
@@ -60,12 +62,13 @@ impl<T> Pot<T> {
                 node.set_next( self.head( parent ));
                 self.adopt( parent, child, child );
             }
-            self[ parent ].set_child( child );
+            self.modify()[ parent ].set_child( child );
         }
         if self.len() <= child {
             self.grow( 1 );
         }
-        unsafe{ self.write( child, node )}
+        unsafe{ self.modify().write( child, node ); }
+
     }
 
     #[inline] pub(crate) fn nth_child( &self, mut index: usize, mut nth: usize ) -> Option<usize> {
@@ -139,8 +142,10 @@ impl<T> Pot<T> {
     }
 
     #[inline] pub(crate) fn is_forest_pot( &self ) -> bool { self.is_forest( NULL )}
-    #[inline] pub(crate) fn set_tree_pot(   &mut self ) { self[ NULL ].adjoined = TREE; }
-    #[inline] pub(crate) fn set_forest_pot( &mut self ) { self[ NULL ].adjoined = FOREST; }
+
+    #[inline] pub(crate) fn set_tree_pot(   &mut self ) { self.modify()[ NULL ].adjoined = TREE; }
+
+    #[inline] pub(crate) fn set_forest_pot( &mut self ) { self.modify()[ NULL ].adjoined = FOREST; }
 
     #[inline] pub(crate) fn adjoined( &self, index: usize )-> usize { self[ index ].adjoined as usize }
 
@@ -154,9 +159,9 @@ impl<T> Pot<T> {
 
     #[inline] pub(crate) fn parent( &self, index: usize ) -> usize { self[ index ].parent as usize }
 
-    #[inline] pub(crate) fn reset_sib( &mut self, index: usize ) { self[ index ].set_prev( index ); self[ index ].set_next( index ); }
+    #[inline] pub(crate) fn reset_sib( &mut self, index: usize ) { self.modify()[ index ].set_prev( index ); self.modify()[ index ].set_next( index ); }
 
-    #[inline] pub(crate) fn reset_parent( &mut self, index: usize ) { self[ index ].set_parent( usize::null() ); }
+    #[inline] pub(crate) fn reset_parent( &mut self, index: usize ) { self.modify()[ index ].set_parent( usize::null() ); }
 
     #[inline] pub(crate) fn tail( &self, index: usize ) -> usize { self[ index ].child() }
 
@@ -175,9 +180,9 @@ impl<T> Pot<T> {
 
     #[inline] pub(crate) fn adopt( &mut self, parent: usize, begin: usize, end: usize ) {
         let parent_head = self.head( parent );
-        self[ parent_head ].set_prev( begin );
+        self.modify()[ parent_head ].set_prev( begin );
         let parent_tail = self.tail( parent );
-        self[ parent_tail ].set_next( end );
+        self.modify()[ parent_tail ].set_next( end );
     }
 
     #[inline] pub(crate) unsafe fn drop( this: Self ) { let _ = Box::from_raw( this.nodes.as_ptr() ); }

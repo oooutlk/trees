@@ -8,7 +8,7 @@
 //!
 //! 2. The child nodes can be randomly accessed in constant time, as long as the tree/forest is constructed in batch mode, and do few modifications after that.
 //!
-//! 3. The underlying storage is a `Vec`, which minimize the dynamic memory allocations.
+//! 3. The underlying storage is `Vec`, which minimize the dynamic memory allocations.
 
 pub mod tree;
 pub use self::tree::Tree; 
@@ -38,6 +38,7 @@ const ROOT : usize = 1;  // root for tree, fake root for forest.
 const TREE   : u32 = 0;  // flag in [NULL].adjoined to indicate a potted tree.
 const FOREST : u32 = !0; // flag in [NULL].adjoined to indicate a potted forest.
 
+#[allow( deprecated )]
 fn tree_null<T>() -> Node<T> {
     Node {
         next     : NULL as u32,
@@ -51,6 +52,7 @@ fn tree_null<T>() -> Node<T> {
     }
 }
 
+#[allow( deprecated )]
 fn forest_null<T>() -> Node<T> {
     Node {
         next     : NULL as u32,
@@ -64,6 +66,7 @@ fn forest_null<T>() -> Node<T> {
     }
 }
 
+#[allow( deprecated )]
 fn fake_root <T>() -> Node<T> {
     Node {
         next     : ROOT as u32,
@@ -135,9 +138,10 @@ mod tests {
     fn test_grow() {
         let mut tree: Tree<_> = ( 0, 1, 2 ).into();
         {
-            let mut iter = tree.iter_mut();
-            let first = iter.next().unwrap();
-            let second = iter.next().unwrap();
+            let mut root = tree.root_mut();
+            let mut iter = root.iter_mut();
+            let mut first = iter.next().unwrap();
+            let mut second = iter.next().unwrap();
             second.append_fr(( fr(), 3, 4, 5, 6, 7 ));
             first.append_fr(( fr(), 8, 9 ));
         }

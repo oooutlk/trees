@@ -119,16 +119,10 @@ mod tests {
 
     #[test]
     fn borrow_forest() {
-        let mut tree = tr(0) /tr(1) /tr(2);
+        let tree = tr(0) /tr(1) /tr(2);
         {
             let forest: &Forest<_> = tree.borrow();
             assert_eq!( forest.to_string(), "( 1 2 )" );
         }
-        {
-            for mut node in tree.root_mut().forest_mut_().iter_mut() {
-                node.data *= 10;
-            }
-        }
-        assert_eq!( tree.to_string(), "0( 10 20 )" );
     }
 }

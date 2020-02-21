@@ -15,10 +15,6 @@ impl<T> Deref for Forest<T> {
     fn deref( &self ) -> &Link { &self.link }
 }
 
-impl<T> DerefMut for Forest<T> {
-    fn deref_mut( &mut self ) -> &mut Link { &mut self.link }
-}
-
 impl<T> Forest<T> {
     /// Makes an empty `Forest`.
     #[inline] pub fn new() -> Forest<T> { Self::from( null_mut(), Size{ degree: 0, node_cnt: 0 })}
@@ -60,7 +56,10 @@ impl<T> Forest<T> {
     #[inline] pub fn is_empty( &self ) -> bool { self.link.is_leaf() }
 
     #[inline] pub(crate) fn set_parent( &mut self, parent: *mut Link ) {
-        for child in self.iter_mut() { child.set_parent( parent ); }
+        for child in self.iter_mut() {
+            let child = unsafe{ child.get_unchecked_mut() };
+            child.link.set_parent( parent );
+        }
     }
 
     #[inline] pub(crate) fn from( child: *mut Link, size: Size ) -> Self {
@@ -98,11 +97,11 @@ impl<T> Forest<T> {
 
     /// Returns a mutable pointer to the first child of the forest,
     /// or None if it is empty.
-    pub fn first_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn first_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_empty() {
             None
         } else {
-            unsafe { Some( &mut *( self.head() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.head() as *mut Node<T> )))}
         }
     }
 
@@ -118,11 +117,11 @@ impl<T> Forest<T> {
 
     /// Returns a mutable pointer to the last child of the forest,
     /// or None if it is empty.
-    pub fn last_mut( &mut self ) -> Option<&mut Node<T>> {
+    pub fn last_mut( &mut self ) -> Option<Pin<&mut Node<T>>> {
         if self.is_empty() {
             None
         } else {
-            unsafe { Some( &mut *( self.tail() as *mut Node<T> ))}
+            unsafe { Some( Pin::new_unchecked( &mut *( self.tail() as *mut Node<T> )))}
         }
     }
 
@@ -139,15 +138,15 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.to_string(), "( 2 1 )" );
     /// ```
     #[inline] pub fn push_front( &mut self, mut tree: Tree<T> ) {
-        let tree_root = tree.root_mut().plink();
+        let tree_root = tree.root_mut_().plink();
         if self.is_empty() {
-            self.set_child( tree_root );
+            self.link.set_child( tree_root );
         } else { unsafe {
-            tree.set_sib( self.tail(), self.head() );
-            self.adopt( tree_root, tree_root );
+            tree.link_mut().set_sib( self.tail(), self.head() );
+            self.link.adopt( tree_root, tree_root );
         }}
-        self.size.degree += 1;
-        self.size.node_cnt += tree.root().size.node_cnt;
+        self.link.size.degree += 1;
+        self.link.size.node_cnt += tree.root().size.node_cnt;
         tree.clear();
     }
 
@@ -164,16 +163,16 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.to_string(), "( 1 2 )" );
     /// ```
     #[inline] pub fn push_back( &mut self, mut tree: Tree<T> ) {
-        let tree_root = tree.root_mut().plink();
+        let tree_root = tree.root_mut_().plink();
         if !self.is_empty() {
             unsafe {
-                tree.set_sib( self.tail(), self.head() );
-                self.adopt( tree_root, tree_root );
+                tree.link_mut().set_sib( self.tail(), self.head() );
+                self.link.adopt( tree_root, tree_root );
             }
         }
-        self.set_child( tree_root );
-        self.size.degree += 1;
-        self.size.node_cnt += tree.root().size.node_cnt;
+        self.link.set_child( tree_root );
+        self.link.size.degree += 1;
+        self.link.size.node_cnt += tree.root().size.node_cnt;
         tree.clear();
     }
 
@@ -202,8 +201,8 @@ impl<T> Forest<T> {
             }
             (*front).reset_parent();
             (*front).reset_sib();
-            self.size.degree -= 1;
-            self.size.node_cnt -= (*front).size.node_cnt;
+            self.link.size.degree -= 1;
+            self.link.size.node_cnt -= (*front).size.node_cnt;
             Some( Tree::from( front ))
         }}
     }
@@ -231,12 +230,12 @@ impl<T> Forest<T> {
                 let new_tail = self.new_tail();
                 (*new_tail).next = self.head();
                 (*self.head()).prev = new_tail;
-                self.set_child( new_tail );
+                self.link.set_child( new_tail );
             }
             (*back).reset_parent();
             (*back).reset_sib();
-            self.size.degree -= 1;
-            self.size.node_cnt -= (*back).size.node_cnt;
+            self.link.size.degree -= 1;
+            self.link.size.node_cnt -= (*back).size.node_cnt;
             Some( Tree::from( back ))
         }}
     }
@@ -256,13 +255,13 @@ impl<T> Forest<T> {
     #[inline] pub fn prepend( &mut self, mut forest: Forest<T> ) {
         if !forest.is_empty() {
             if self.is_empty() {
-                self.set_child( forest.tail() );
+                self.link.set_child( forest.tail() );
             } else { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.tail(), self.head() );
-                self.adopt( forest.tail(), forest_head );
+                self.link.adopt( forest.tail(), forest_head );
             }}
-            self.size += forest.size;
+            self.link.size += forest.size;
             forest.clear();
         }
     }
@@ -284,10 +283,10 @@ impl<T> Forest<T> {
             if !self.is_empty() { unsafe {
                 let forest_head = forest.head();
                 forest.set_sib( self.tail(), self.head() );
-                self.adopt( forest.tail(), forest_head );
+                self.link.adopt( forest.tail(), forest_head );
             }}
-            self.set_child( forest.tail() );
-            self.size += forest.size;
+            self.link.set_child( forest.tail() );
+            self.link.size += forest.size;
             forest.clear();
         }
     }
@@ -317,15 +316,6 @@ impl<T> Forest<T> {
         }}
     }
 
-    #[deprecated( since="0.2.0", note="please use `iter` instead" )]
-    #[inline] pub fn children<'a>( &self ) -> Iter<'a,T> {
-        if self.is_empty() {
-            Iter::new( null(), null(), 0 )
-        } else { unsafe {
-            Iter::new( self.head(), self.tail(), self.size.degree as usize )
-        }}
-    }
-
     /// Provides a forward iterator over child `Node`s with mutable references.
     ///
     /// # Examples
@@ -337,19 +327,10 @@ impl<T> Forest<T> {
     /// assert_eq!( forest.iter_mut().next(), None );
     ///
     /// let mut forest = -tr(1)-tr(2);
-    /// for child in forest.iter_mut() { child.data *= 10; }
+    /// for mut child in forest.iter_mut() { child.data *= 10; }
     /// assert_eq!( forest.to_string(), "( 10 20 )" );
     /// ```
     #[inline] pub fn iter_mut<'a>( &mut self ) -> IterMut<'a,T> {
-        if self.is_empty() {
-            IterMut::new( null_mut(), null_mut(), 0 )
-        } else { unsafe {
-            IterMut::new( self.head(), self.tail(), self.size.degree as usize )
-        }}
-    }
-
-    #[deprecated( since="0.2.0", note="please use `iter_mut` instead" )]
-    #[inline] pub fn children_mut<'a>( &mut self ) -> IterMut<'a,T> {
         if self.is_empty() {
             IterMut::new( null_mut(), null_mut(), 0 )
         } else { unsafe {
@@ -540,11 +521,12 @@ impl<T> Extend<Tree<T>> for Forest<T> {
 
 impl<T:Debug> Debug for Forest<T> { fn fmt( &self, f: &mut Formatter ) -> fmt::Result {
     if self.is_empty() {
-            write!( f, "()" )
+            self.link.fmt(f)
         } else {
+            self.link.fmt(f)?;
             write!( f, "( " )?;
             for child in self.iter() {
-                write!( f, "{:?} ", child )?;
+                child.fmt(f)?;
             }
             write!( f, ")" )
         }

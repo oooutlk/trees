@@ -45,7 +45,7 @@ impl<'a, T:'a> Subnode<'a,T> {
     #[inline] pub fn insert_after( &mut self, mut sib: Tree<T> ) {
         unsafe {
             (*sib.link_mut()).set_sib( self.node.next );
-            self.node.link_mut().set_sib( sib.root_mut_().plink() );
+            self.node.link.set_sib( sib.root_mut_().plink() );
             if (*self.parent).tail() == self.node.plink() {
                 (*self.parent).set_child( sib.root_mut_().plink() );
             }
@@ -70,7 +70,7 @@ impl<'a, T:'a> Subnode<'a,T> {
                 (*self.parent).set_child( if self.node.has_no_sib() { null_mut() } else { self.prev });
             }
             (*self.prev).set_sib( self.node.next );
-            self.node.link_mut().reset_sib();
+            self.node.link.reset_sib();
             Tree::from( self.node.plink() )
         }
     }

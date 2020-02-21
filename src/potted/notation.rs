@@ -3,18 +3,19 @@ use super::{Pot,Size};
 use crate::rust::*;
 
 /// mark trait for types to be the data type of the tree/forest.
-pub trait TreeData: Sized {}
+/// The type which implements this trait should allow move or clone.
+pub unsafe trait TreeData: Sized + Unpin {}
 
 macro_rules! primitive_impls {
-    ($($name:ty),*) => { $(impl TreeData for $name {})* }
+    ($($name:ty),*) => { $(unsafe impl TreeData for $name {})* }
 }
 
 primitive_impls! {
     bool, i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize, f32, f64
 }
 
-impl TreeData for &'static str {}
-impl TreeData for String {}
+unsafe impl TreeData for &'static str {}
+unsafe impl TreeData for String {}
 
 pub unsafe trait TupleTree where Self: Sized {
     type Data;

@@ -67,9 +67,10 @@ impl<T> Node<T> {
     ///
     /// ```
     /// use trees::potted::{Tree,Node,TreeData,TupleTree};
+    /// use std::pin::Pin;
     ///
     /// let mut tree = Tree::<_>::from(( 1, ));
-    /// let root: &mut Node<_> = tree.root_mut();
+    /// let mut root: Pin<&mut Node<_>> = tree.root_mut();
     /// assert!( root.is_leaf() );
     ///
     /// root.append_tr(( 2, ));
@@ -137,7 +138,7 @@ impl<T> Node<T> {
     /// ```
     pub fn nth_child_mut( &mut self, n: usize ) -> Option<&mut Self> {
         let mut pot = self.pot();
-        pot.nth_child( self.index(), n ).map( |index| unsafe{ transmute( &mut pot[ index ])})
+        pot.nth_child( self.index(), n ).map( |index| unsafe{ transmute( &mut pot.modify()[ index ])})
     }
 
     /// Provides a forward iterator over child nodes
@@ -172,7 +173,7 @@ impl<T> Node<T> {
     /// use trees::potted::{Tree,TreeData,TupleTree};
     ///
     /// let mut tree: Tree<_> = ( 0, 1, 2, 3 ).into();
-    /// for child in tree.root_mut().iter_mut() {
+    /// for mut child in tree.root_mut().iter_mut() {
     ///     child.data *= 10;
     /// }
     /// assert_eq!( tree.root().to_string(), "0( 10 20 30 )" );
@@ -218,7 +219,7 @@ impl<T> Node<T> {
         let mut up = self.index();
         let mut pot = self.pot();
         while !up.is_null() {
-            pot[ up ].size.node_cnt += node_cnt;
+            pot.modify()[ up ].size.node_cnt += node_cnt;
             up = pot.parent( up );
         }
     }
@@ -230,7 +231,7 @@ impl<T> Node<T> {
         let mut up = self.index();
         let mut pot = self.pot();
         while !up.is_null() {
-            pot[ up ].size.node_cnt -= node_cnt;
+            pot.modify()[ up ].size.node_cnt -= node_cnt;
             up = pot.parent( up );
         }
     }
@@ -352,7 +353,7 @@ impl<T> Node<T> {
 
     fn drop_data_recursively( &mut self ) {
         for child in self.iter_mut() {
-            child.drop_data_recursively();
+            unsafe{ Pin::get_unchecked_mut( child )}.drop_data_recursively();
         }
         unsafe{ ptr::drop_in_place( &mut self.data )}
     }
@@ -373,8 +374,8 @@ impl<T> Node<T> {
 
                 let new_tail = unsafe{ pot.new_tail( self.index() )};
                 let head = pot.head( self.index() );
-                pot[ new_tail ].set_next( head );
-                pot[ head ].set_prev( new_tail );
+                pot.modify()[ new_tail ].set_next( head );
+                pot.modify()[ head ].set_prev( new_tail );
                 self.set_child( new_tail );
 
                 pot.reset_parent( back );
@@ -429,10 +430,10 @@ impl<T> Node<T> {
         if pot.is_forest( tail ) {
             let forest = tail;
             let forest_tail = pot.tail( forest );
-            pot[ forest_tail ].drop_all_data_if_needed();
-            pot[ forest ].size.degree -= 1;
+            pot.modify()[ forest_tail ].drop_all_data_if_needed();
+            pot.modify()[ forest ].size.degree -= 1;
             if pot[ forest ].size.degree == 0 {
-                pot[ forest ].unlink_back();
+                pot.modify()[ forest ].unlink_back();
             } else {
                 self.unlink_back();
             }
@@ -440,7 +441,7 @@ impl<T> Node<T> {
             if self.adjoined() == degree {
                 self.adjoined -= 1;
             }
-            pot[ tail ].drop_all_data_if_needed();
+            pot.modify()[ tail ].drop_all_data_if_needed();
             self.unlink_back();
         }
     }
@@ -477,7 +478,7 @@ impl<T> Node<T> {
         let mut pot = self.pot();
         if do_propagation {
             pot.gather( parent, child, data, Size{ degree: size.degree, node_cnt: 1 });
-            pot[ parent ].inc_sizes( 0, 1 );
+            pot.modify()[ parent ].inc_sizes( 0, 1 );
         } else {
             pot.gather( parent, child, data, size );
         }
@@ -612,20 +613,13 @@ impl<T> Node<T> {
     /// use trees::potted::Tree;
     ///
     /// let mut tree: Tree<_> = (0, (1,2,3), (4,5,6) ).into();
-    /// let visits = tree.root_mut().bfs_mut().iter.collect::<Vec<_>>();
-    /// assert_eq!( visits, vec![
-    ///     bfs::Visit{ data: &mut 0, size: Size{ degree: 2, node_cnt: 7 }},
-    ///     bfs::Visit{ data: &mut 1, size: Size{ degree: 2, node_cnt: 3 }},
-    ///     bfs::Visit{ data: &mut 4, size: Size{ degree: 2, node_cnt: 3 }},
-    ///     bfs::Visit{ data: &mut 2, size: Size{ degree: 0, node_cnt: 1 }},
-    ///     bfs::Visit{ data: &mut 3, size: Size{ degree: 0, node_cnt: 1 }},
-    ///     bfs::Visit{ data: &mut 5, size: Size{ degree: 0, node_cnt: 1 }},
-    ///     bfs::Visit{ data: &mut 6, size: Size{ degree: 0, node_cnt: 1 }},
-    /// ]);
+    /// let mut root = tree.root_mut();
+    /// root.bfs_mut().iter.zip( 0.. ).for_each( |(visit,nth)| (*visit.data) += 10 * nth );
+    /// assert_eq!( tree, Tree::from(( 0, (11,32,43), (24,55,66), )));
     /// ```
     pub fn bfs_mut( &mut self ) -> BfsTree<Splitted<IterMut<T>>> {
         let node_cnt = self.size.node_cnt;
-        BfsTree::from( self, Size{ degree: 1, node_cnt })
+        BfsTree::from( unsafe{ Pin::new_unchecked( self )}, Size{ degree: 1, node_cnt })
     }
 }
 
@@ -705,17 +699,19 @@ impl<'a, T:'a> Split for &'a Node<T> {
     }
 }
 
-impl<'a, T:'a> Split for &'a mut Node<T> {
+impl<'a, T:'a> Split for Pin<&'a mut Node<T>> {
     type Item = &'a mut T;
     type Iter = IterMut<'a,T>;
 
     fn split( self ) -> ( &'a mut T, IterMut<'a,T>, u32 ) {
         let node_cnt = self.size.node_cnt;
-        (
-            unsafe{ transmute( &mut self.data )},
-            self.iter_mut(),
-            node_cnt
-        ) // borrow two mutable references at one time
+
+        unsafe {
+            let node_mut = self.get_unchecked_mut();
+            let data = &mut *( &mut node_mut.data as *mut T );
+            let iter = node_mut.iter_mut();
+            ( data, iter, node_cnt )
+        } // borrow two mutable references at one time
     }
 }
 
@@ -728,7 +724,7 @@ impl<'a, T:'a> IntoIterator for &'a Node<T> {
     }
 }
 
-impl<'a, T:'a> IntoIterator for &'a mut Node<T> {
+impl<'a, T:'a> IntoIterator for Pin<&'a mut Node<T>> {
     type Item = Self;
     type IntoIter = IterMut<'a,T>;
 

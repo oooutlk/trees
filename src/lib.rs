@@ -52,6 +52,7 @@
 //!     Tree::from(( 0, ));
 //!     Tree::from(( 0, 1 ));
 //!     Tree::from(( 0, 1, 2 ));
+//!     Tree::from(( 0, (1, 2, 3), (4, 5, 6)));
 //!     ```
 //!
 //! 2. Forest notation
@@ -112,7 +113,7 @@
 //!
 //! 4. String representation 
 //! 
-//! The Debug and Display trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
+//! The Display trait has been implemented that is essentially the same as tree_to_tring() mentioned above.
 //!
 //! Children are seperated by spaces and grouped in the parentheses that follow their parent closely. 
 //!     
@@ -122,14 +123,12 @@
 //!     let tree = tr(0) /( tr(1) /tr(2)/tr(3) ) /( tr(4) /tr(5)/tr(6) );
 //!     let str_repr = "0( 1( 2 3 ) 4( 5 6 ) )";
 //!     assert_eq!( tree.to_string(), str_repr );
-//!     assert_eq!( format!( "{:?}", tree ), str_repr );
 //!     
 //!     assert_eq!( fr::<i32>().to_string(), "()" );
 //!     
 //!     let forest = -( tr(1) /tr(2)/tr(3) ) -( tr(4) /tr(5)/tr(6) );
 //!     let str_repr = "( 1( 2 3 ) 4( 5 6 ) )";
 //!     assert_eq!( forest.to_string(), str_repr );
-//!     assert_eq!( format!( "{:?}", fr::<i32>() ), "()" );
 //!```
 //!
 //! ## Slow start
@@ -139,16 +138,17 @@
 //! 1. Tree is composed of a root Node and an optional Forest as its children. A tree can NOT be empty.
 //!     ```
 //!     use trees::{tr,Tree,Forest};
+//!     use std::pin::Pin;
 //!
 //!     let mut tree: Tree<i32> = tr(0);
 //!
 //!     let forest: Forest<i32> = -tr(1)-tr(2)-tr(3);
-//!     tree.append( forest );
+//!     tree.root_mut().append( forest );
 //!     assert_eq!( tree, tr(0) /tr(1) /tr(2) /tr(3) );
 //!
-//!     { let _forest: &Forest<i32>     = tree.forest();     }
-//!     { let _forest: &mut Forest<i32> = tree.forest_mut(); }
-//!     { let _forest: Forest<i32>      = tree.abandon();    }
+//!     { let _forest: &Forest<i32>          = tree.forest();                }
+//!     { let _forest: Pin<&mut Forest<i32>> = tree.root_mut().forest_mut(); }
+//!     { let _forest: Forest<i32>           = tree.abandon();               }
 //!
 //!     assert_eq!( tree, tr(0) );
 //!     ```
@@ -171,8 +171,8 @@
 //!     use trees::{tr,fr,Forest};
 //!
 //!     let mut forest: Forest<i32> = fr(); // an empty forest
-//!     forest.push_back( tr(1) );          // forest has one tree
-//!     forest.push_back( tr(2) );          // forest has two trees
+//!     forest.push_back( tr(1) );          // forest has one tree, tr(1)
+//!     forest.push_back( tr(2) );          // forest has two trees, tr(1) and tr(2)
 //!     ```
 //!
 //!     The potted version:
@@ -194,7 +194,7 @@
 //!         let second_child: &Node<i32> = tree.iter().nth(1).unwrap();
 //!         let third_child : &Node<i32> = tree.iter().last().unwrap();
 //!     }
-//!     let first_child: Tree<i32> = tree.pop_front().unwrap();
+//!     let first_child: Tree<i32> = tree.root_mut().pop_front().unwrap();
 //!     ```
 //!
 //!     The potted version:
@@ -215,29 +215,29 @@
 //! 
 //! 1. Using iter() to iterate over referenced child Nodes, you can:
 //! 
-//! 1.1 read the data associated with each node.
+//! - read the data associated with each node.
 //! 
-//! 1.2 use iter() to iterate over children's children, etc.
+//! - use iter() to iterate over children's children, etc.
 //! 
 //! 2. Using iter_mut() to iterate over referenced child Nodes, you can:
 //! 
-//! 2.1 read/write the data associated with each node, or prepend(), append, abandon(), push_front(), pop_front(), push_back(), pop_back() child node(s) in constant time.
+//! - read/write the data associated with each node, or prepend(), append, abandon(), push_front(), pop_front(), push_back(), pop_back() child node(s) in constant time.
 //!
 //! Note that linked::singly does not have pop_back(), and potted tree/forest's methods are different in names and/or functionalities.
 //! 
-//! 2.2 use iter_mut() to iterate over children's children, etc.
+//! - use iter_mut() to iterate over children's children, etc.
 //! 
 //! 3. Using onto_iter() to iterate over Subnodes, you can:
 //! 
-//! 3.1 insert_before, insert_after(), depart() node(s) at any position.
+//! - insert_before, insert_after(), depart() node(s) at any position.
 //! 
-//! 3.2 do whatever iter() or iter_mut() can do.
+//! - do whatever iter() or iter_mut() can do.
 //! 
 //! Note that it is not implemented for potted version.
 //! 
 //! 4. Using Forest::<T>::into_iter() to iterate over Trees, you can:
 //! 
-//! Do whatever you want to.
+//! - Do whatever you want to.
 //! 
 //! Note that it is not implemented for potted version.
 //! 
@@ -280,7 +280,7 @@
 //! ### Safety
 //!
 //! Collections of pointer-based tree implementation require many unsafes to do raw pointer dereferences.
-//! Currently this crate contains **nearly 200 unsafe** blocks in its source code.
+//! Currently this crate contains **200+ unsafe** blocks in its source code.
 //! This crate relies on lifetime bounds and borrow check to keep memory-safety, in compile time.
 //! The following are some simple demonstrations.
 //!
@@ -331,23 +331,23 @@
 extern crate indexed;
 
 mod rust {
-    #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,BorrowMut};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::borrow::{Borrow,ToOwned};
     #[cfg(not(feature="no_std"))] pub(crate) use std::boxed::Box;
     #[cfg(not(feature="no_std"))] pub(crate) use std::collections::VecDeque;
     #[cfg(not(feature="no_std"))] pub(crate) use std::cmp::Ordering::{self,*};
     #[cfg(not(feature="no_std"))] pub(crate) use std::fmt::{self,Debug,Display,Formatter};
     #[cfg(not(feature="no_std"))] pub(crate) use std::hash::{Hasher,Hash};
     #[cfg(not(feature="no_std"))] pub(crate) use std::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::marker::PhantomData;
+    #[cfg(not(feature="no_std"))] pub(crate) use std::marker::{PhantomData,Unpin};
     #[cfg(not(feature="no_std"))] pub(crate) use std::mem::{self,forget,transmute};
-    #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(not(feature="no_std"))] pub(crate) use std::ops::{Add,AddAssign,Deref,Div,Neg,Sub,SubAssign};
     #[cfg(not(feature="no_std"))] pub(crate) use std::pin::Pin;
     #[cfg(not(feature="no_std"))] pub(crate) use std::ptr::{self,NonNull,null,null_mut};
     #[cfg(not(feature="no_std"))] pub(crate) use std::vec::Vec;
 
     #[cfg(feature="no_std")] extern crate core;
     #[cfg(feature="no_std")] extern crate alloc;
-    #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,BorrowMut,ToOwned};
+    #[cfg(feature="no_std")] pub(crate) use self::alloc::borrow::{Borrow,ToOwned};
     #[cfg(feature="no_std")] pub(crate) use self::alloc::boxed::Box;
     #[cfg(feature="no_std")] pub(crate) use self::alloc::string::String;
     #[cfg(feature="no_std")]
@@ -360,9 +360,9 @@ mod rust {
     #[cfg(feature="no_std")] pub(crate) use core::fmt::{self,Debug,Display,Formatter};
     #[cfg(feature="no_std")] pub(crate) use core::hash::{Hasher,Hash};
     #[cfg(feature="no_std")] pub(crate) use core::iter::{Iterator,FromIterator,IntoIterator,FusedIterator};
-    #[cfg(feature="no_std")] pub(crate) use core::marker::PhantomData;
+    #[cfg(feature="no_std")] pub(crate) use core::marker::{PhantomData,Unpin};
     #[cfg(feature="no_std")] pub(crate) use core::mem::{self,forget,transmute};
-    #[cfg(feature="no_std")] pub(crate) use core::ops::{Add,AddAssign,Deref,DerefMut,Div,Neg,Sub,SubAssign};
+    #[cfg(feature="no_std")] pub(crate) use core::ops::{Add,AddAssign,Deref,Div,Neg,Sub,SubAssign};
     #[cfg(feature="no_std")] pub(crate) use core::pin::Pin;
     #[cfg(feature="no_std")] pub(crate) use core::ptr::{self,NonNull,null,null_mut};
 }
