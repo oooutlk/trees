@@ -36,7 +36,7 @@ Currently this library provides three different trees, implemented in raw-pointe
 - `linked::singly`
   Two pointers per node. Hold no size infomation. Note that constant time `pop_back` is not supported.
 
-- `linked::singly`
+- `linked::fully`
   Four pointers plus two `u32`s per node. Hold children count and node count.
 
 - `potted`
