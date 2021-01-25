@@ -1,31 +1,33 @@
+//! size of a tree/forest/node, including degree and descendant node count
+
 use crate::rust::*;
 
-/// A struct keeping the node's children count and all its descendants count for resource management purpose.
-/// Note that `u32` is utilized rather than `usize`, because 4194304K ought to be enough for anybody.
-#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+/// A struct keeping the node's children count and all its descendants count
+/// for resource management purpose.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Size {
-    pub degree   : u32, // count of children node
-    pub node_cnt : u32, // count of all nodes, including itself and all its descendants
+    pub degree      : usize, // count of child nodes
+    pub descendants : usize, // count of its descendant nodes
 }
 
 impl Add for Size {
     type Output = Self;
-    fn add( self, rhs: Self ) -> Self { Size{ degree: self.degree+rhs.degree, node_cnt: self.node_cnt+rhs.node_cnt }}
+    fn add( self, rhs: Self ) -> Self { Size{ degree: self.degree+rhs.degree, descendants: self.descendants+rhs.descendants }}
 }
 
 impl AddAssign for Size {
     fn add_assign( &mut self, rhs: Self ) {
-        *self = Size{ degree: self.degree+rhs.degree, node_cnt: self.node_cnt+rhs.node_cnt }
+        *self = Size{ degree: self.degree+rhs.degree, descendants: self.descendants+rhs.descendants }
     }
 }
 
 impl Sub for Size {
     type Output = Self;
-    fn sub( self, rhs: Self ) -> Self { Size{ degree: self.degree-rhs.degree, node_cnt: self.node_cnt-rhs.node_cnt }}
+    fn sub( self, rhs: Self ) -> Self { Size{ degree: self.degree-rhs.degree, descendants: self.descendants-rhs.descendants }}
 }
 
 impl SubAssign for Size {
     fn sub_assign( &mut self, rhs: Self ) {
-        *self = Size{ degree: self.degree-rhs.degree, node_cnt: self.node_cnt-rhs.node_cnt }
+        *self = Size{ degree: self.degree-rhs.degree, descendants: self.descendants-rhs.descendants }
     }
 }

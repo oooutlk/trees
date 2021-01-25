@@ -1,16 +1,17 @@
-/// breadth first search
-
-use super::Size;
+//! Breadth first search.
 
 use crate::rust::*;
 
-/// A struct for one visit in breadth first search.
-#[derive(Debug,PartialEq,Eq)]
+use super::Size;
+
+/// Visit a node in breadth first search.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Visit<T> {
     pub data : T,
     pub size : Size,
 }
 
+/// Tree iterator for breadth first search.
 pub struct BfsTree<Iter> {
     pub iter : Iter,
     pub size : Size,
@@ -28,8 +29,33 @@ impl<Item,Iter> BfsTree<Splitted<Iter>>
 
 impl<Iter> BfsTree<Iter> {
     pub fn wrap( self ) -> Bfs<Iter> { Bfs::Tree( self )}
+
+    /// Takes a closure and creates another BfsTree which calls that closure on
+    /// each `Visit::data`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use trees::Tree;
+    ///
+    /// let tree = Tree::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), ));
+    /// assert_eq!( Tree::from( tree.bfs() ),
+    ///     Tree::<&i32>::from_tuple(( &0, (&1,&2,&3), (&4,&5,&6), )));
+    /// assert_eq!( Tree::from( tree.bfs().map( ToOwned::to_owned )),
+    ///     Tree::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), )));
+    /// ```
+    pub fn map<B,F,T>( self, mut f: F ) -> BfsTree<impl Iterator<Item=Visit<B>>>
+        where Iter : Iterator<Item=Visit<T>>
+            , F    : FnMut(T) -> B
+    {
+        BfsTree {
+            iter: self.iter.map( move |visit| Visit{ data: f( visit.data ), size: visit.size }),
+            size: self.size,
+        }
+    }
 }
 
+/// Forest iterator for breadth first search.
 pub struct BfsForest<Iter> {
     pub iter : Iter,
     pub size : Size,
@@ -47,8 +73,33 @@ impl<Item,Iter> BfsForest<Splitted<Iter>>
 
 impl<Iter> BfsForest<Iter> {
     pub fn wrap( self ) -> Bfs<Iter> { Bfs::Forest( self )}
+
+    /// Takes a closure and creates another BfsForest which calls that closure
+    /// on each `Visit::data`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use trees::Forest;
+    ///
+    /// let forest = Forest::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), ));
+    /// assert_eq!( Forest::from( forest.bfs() ),
+    ///     Forest::<&i32>::from_tuple(( &0, (&1,&2,&3), (&4,&5,&6), )));
+    /// assert_eq!( Forest::from( forest.bfs().map( ToOwned::to_owned )),
+    ///     Forest::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), )));
+    /// ```
+    pub fn map<B,F,T>( self, mut f: F ) -> BfsForest<impl Iterator<Item=Visit<B>>>
+        where Iter : Iterator<Item=Visit<T>>
+            , F    : FnMut(T) -> B
+    {
+        BfsForest {
+            iter: self.iter.map( move |visit| Visit{ data: f( visit.data ), size: visit.size }),
+            size: self.size,
+        }
+    }
 }
 
+/// Bfs iterator of either tree or forest.
 pub enum Bfs<Iter> {
     Tree(   BfsTree  <Iter> ),
     Forest( BfsForest<Iter> ),
@@ -57,6 +108,7 @@ pub enum Bfs<Iter> {
 impl<T,Iter> Bfs<Iter>
     where Iter: Iterator<Item=Visit<T>>
 {
+    /// Returns the iterator in breadth-first search.
     pub fn iter( self ) -> Iter {
         match self {
             Bfs::Tree(   tree   ) => tree.iter,
@@ -64,6 +116,7 @@ impl<T,Iter> Bfs<Iter>
         }
     }
 
+    /// Returns the iterator and size infomation.
     pub fn iter_and_size( self ) -> ( Iter, Size ) {
         match self {
             Bfs::Tree(   tree   ) => (tree.iter,   tree.size),
@@ -71,6 +124,8 @@ impl<T,Iter> Bfs<Iter>
         }
     }
 
+    /// Returns the iterator which iterates the tree nodes in breadth-first
+    /// search, or `None` if it is created by some `Forest`.
     pub fn tree_iter( self ) -> Option<Iter> {
         match self {
             Bfs::Tree( tree ) => Some( tree.iter ),
@@ -78,6 +133,8 @@ impl<T,Iter> Bfs<Iter>
         }
     }
 
+    /// Returns the iterator which iterates the forest nodes in breadth-first
+    /// search, or `None` if it is created by some `Tree`.
     pub fn forest_iter( self ) -> Option<Iter> {
         match self {
             Bfs::Forest( forest ) => Some( forest.iter ),
@@ -86,15 +143,16 @@ impl<T,Iter> Bfs<Iter>
     }
 }
 
-/// Split tree node into data item and chidren iter.
+/// Split tree node into data item and children iter.
 pub trait Split {
     type Item;
     type Iter: ExactSizeIterator;
 
-    fn split( self ) -> ( Self::Item, Self::Iter, u32 );
+    fn split( self ) -> (Self::Item, Self::Iter, usize);
 }
 
-/// An iterator in breadth-first manner
+/// An iterator in breadth-first manner.
+#[derive( Debug )]
 pub struct Splitted<Iter> {
     pub(crate) iters : VecDeque<Iter>,
 }
@@ -116,19 +174,19 @@ impl<T,Item,Iter> Iterator for Splitted<Iter>
 {
     type Item = Visit<T>;
 
-    #[inline] fn next( &mut self ) -> Option<Self::Item> {
+    fn next( &mut self ) -> Option<Self::Item> {
         loop {
-            let next_item = 
+            let next_item =
                 if let Some( ref mut iter ) = self.iters.front_mut() {
                     iter.next()
                 } else {
                     return None;
                 };
             if let Some( item ) = next_item {
-                let ( data, iter, node_cnt ) = item.split();
+                let (data, iter, descendants) = item.split();
                 let degree = iter.len();
                 self.iters.push_back( iter );
-                return Some( Visit{ data, size: Size{ degree: degree as u32, node_cnt }});
+                return Some( Visit{ data, size: Size{ degree, descendants }});
             } else {
                 self.iters.pop_front();
             }
@@ -136,19 +194,29 @@ impl<T,Item,Iter> Iterator for Splitted<Iter>
     }
 }
 
-// for potted tree/forest.
-pub(crate) struct Moved<Iter>( pub(crate) Iter );
+#[cfg( miri )]
+mod miri_tests {
+    mod bfs_tree {
+        #[test] fn map() {
+            use crate::Tree;
 
-impl<'a,T,Iter> Iterator for Moved<Iter>
-    where Iter : Iterator<Item=Visit<&'a T>>
-        , T    : 'a
-{
-    type Item = Visit<T>;
+            let tree = Tree::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), ));
+            assert_eq!( Tree::from( tree.bfs() ),
+                Tree::<&i32>::from_tuple(( &0, (&1,&2,&3), (&4,&5,&6), )));
+            assert_eq!( Tree::from( tree.bfs().map( ToOwned::to_owned )),
+                Tree::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), )));
+        }
+    }
 
-    fn next( &mut self ) -> Option<Visit<T>> {
-        self.0.next().map( |item| Visit {
-            data : unsafe{ ptr::read( item.data )}, // potted trees/forests should forget their data
-            size : item.size,
-        })
+    mod bfs_forest {
+        #[test] fn map() {
+            use crate::Forest;
+
+            let forest = Forest::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), ));
+            assert_eq!( Forest::from( forest.bfs() ),
+                Forest::<&i32>::from_tuple(( &0, (&1,&2,&3), (&4,&5,&6), )));
+            assert_eq!( Forest::from( forest.bfs().map( ToOwned::to_owned )),
+                Forest::<i32>::from_tuple(( 0, (1,2,3), (4,5,6), )));
+        }
     }
 }
