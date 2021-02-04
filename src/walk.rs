@@ -132,7 +132,6 @@ impl<T> Walk<T> {
                     break;
                 },
                 Direction::Down => {
-                    let new_nodes;
                     if let Some( nodes ) = self.path.last_mut() {
                         let node = unsafe{ &*nodes.node.unwrap().as_ptr() };
                         if node.has_no_child() {
@@ -140,13 +139,10 @@ impl<T> Walk<T> {
                             continue;
                         } else {
                             let head = node.head;
-                            new_nodes = Some( Nodes::sibs( head ));
+                            self.path.push(Nodes::sibs( head ));
                             self.visit_type = if unsafe{ head.unwrap().as_ref().has_no_child() } { VisitType::Leaf } else { VisitType::Begin };
                         }
-                    } else {
-                        break;
                     }
-                    new_nodes.map( |nodes| self.path.push( nodes ));
                     break;
                 }
                 Direction::Right => {
