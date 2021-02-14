@@ -171,3 +171,281 @@ pub mod rc;
 pub use rc::{RcNode, WeakNode};
 
 pub(crate) mod bfs_impls;
+
+
+#[derive(Debug)]
+pub struct Error {
+    pub msg: String,
+}
+
+impl From<String> for Error {
+    fn from(e: String) -> Self {
+        Error { msg: e }
+    }
+}
+
+impl From<&str> for Error {
+    fn from(e: &str) -> Self {
+        Error { msg: e.to_string() }
+    }
+}
+
+use std::fmt;
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
+
+use std::error;
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        &self.msg
+    }
+}
+
+
+
+use std::pin::Pin;
+impl<T> Node<T> {
+    pub fn locate_first_by_path<'s, 't>(&'s self, mut path: impl Iterator<Item=&'t T> + Clone ) -> Option<&'s Node<T>>
+        where T: 't + PartialEq
+    {
+        if let Some( data ) = path.next() {
+            if self.data() == data {
+                let clone_path = path.clone();
+
+                if path.next().is_none() {
+                    return Some(self)
+                }
+
+                for child in self.iter() {
+                    if let Some( node ) = child.locate_first_by_path(clone_path.clone() ) {
+                        return Some( node );
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub fn locate_first_by_data<'s, 't>(&'s self, data: &'t T) -> Option<&'s Node<T>>
+        where T: 't + PartialEq
+    {
+        if self.data() == data {
+           return Some(self)
+        }
+
+        for child in self.iter() {
+            if let Some(node) = child.locate_first_by_data(data) {
+                return Some(node);
+            }
+        }
+
+        None
+    }
+
+    pub fn locate_first_mut_by_data<'s, 't>(&'s mut self, data: &'t T) ->  Option<Pin<&'s mut Node<T>>>
+        where T: 't + PartialEq
+    {
+        if self.data() == data {
+            return Some( unsafe { Pin::new_unchecked(self)});
+        }
+
+        for child in self.iter_mut() {
+            let child = unsafe{ Pin::get_unchecked_mut(child) };
+            if let Some(node) = child.locate_first_mut_by_data(data) {
+                return Some(node);
+            }
+        }
+        None
+    }
+
+    pub fn locate_first_mut_by_path<'s, 't>(&'s mut self, mut path: impl Iterator<Item=&'t T> + Clone ) -> Option<Pin<&'s mut Node<T>>>
+        where T: 't + PartialEq
+    {
+        if let Some( data ) = path.next() {
+
+            if self.data() == data {
+                let clone_path = path.clone();
+
+                if path.next().is_none() {
+                    return Some( unsafe{ Pin::new_unchecked( self )});
+                }
+
+                for child in self.iter_mut() {
+                    let child = unsafe{ Pin::get_unchecked_mut( child )};
+                    if let Some( node ) = child.locate_first_mut_by_path( clone_path.clone() ) {
+                        return Some( node );
+                    }
+                }
+            }
+        }
+        None
+    }
+
+
+    pub fn ancestors(&self) -> Vec<&T> {
+        let mut ancestors = vec![];
+
+        let mut current_node = self;
+        while let Some(node) = current_node.parent(){
+            ancestors.push(node.data());
+            current_node = node;
+        }
+        ancestors
+    }
+
+
+    pub fn descendants(&self) -> Vec<&T> {
+        self.bfs().iter.map(|v| {
+            v.data
+        }).collect::<Vec<_>>()
+    }
+
+
+    pub fn children(&self) -> Vec<&T> {
+        self.iter().map(|v| v.data()).collect::<Vec<_>>()
+    }
+
+    pub fn father(&self) -> Option<&T> {
+        self.parent().map(|v| v.data())
+    }
+
+}
+
+
+
+use std::convert::{TryFrom};
+use crate::rust::Formatter;
+
+
+impl TryFrom<&str> for Tree<String> {
+    type Error = Error;
+    fn try_from(item: &str) -> Result<Self, Self::Error> {
+        Tree::<String>::try_from(item.to_string())
+    }
+}
+
+impl TryFrom<String> for Tree<String> {
+    type Error = Error;
+
+    fn try_from(item: String) -> Result<Self, Self::Error> {
+        let tree_string = item.trim();
+        let mut tokens = Vec::new();
+        let mut legal = 0;
+
+        let mut t = String::from("");
+        tree_string.chars().for_each(|v| {
+            match v {
+                '(' | ')' | ' ' => {
+                    if !t.is_empty() {
+                        tokens.push(t.clone());
+                        t = "".to_string();
+                    }
+                    if v !=' ' {
+                        tokens.push(v.to_string());
+                    }
+                    legal = if v == '(' {
+                        legal + 1
+                    } else if v == ')' {
+                        legal - 1
+                    } else {
+                        legal
+                    }
+                },
+                _ => t.push(v)
+            }
+        });
+
+        if !t.is_empty() { tokens.push(t) }
+
+        // the number of '(' is not equal to the number of ')'
+        if legal !=0 || tokens.len() == 0 {
+            return Err("() is not closed or no root".into())
+        }
+
+        let mut tree = Tree::new(String::from(&tokens[0]));
+        let mut forests: Vec<Forest<String>> = Vec::new();
+        tokens.iter().skip(1).for_each(|v| {
+            match v.as_str() {
+                "(" => forests.push(Forest::new()),
+                ")" => {
+                    let last_forest = forests.pop().unwrap();
+                    if let Some(father_forest) = forests.last_mut() {
+                        last_forest.into_iter().for_each(|v| {
+                            father_forest.back_mut().unwrap().push_back(v)
+                        })
+                    } else {
+                        // stack emtpy, append forest to root
+                        tree.root_mut().prepend(last_forest)
+                    }
+                },
+                _ => forests.last_mut().unwrap().push_back(Tree::new(String::from(v)))
+            }
+        });
+        Ok(tree)
+    }
+}
+
+
+#[cfg(test)]
+mod extend_tests {
+    use super::*;
+
+
+    #[test] fn test_try_from_string() {
+        let tree_string = "   0( 1( 2 3bc) 4( 5 6 ) )  ";
+        let wrong_string = " ((0)";
+
+        assert!(Tree::try_from(wrong_string).is_err());
+        assert!(Tree::try_from("a").is_ok());
+        assert!(Tree::try_from(String::from(tree_string)).is_ok());
+
+        assert_eq!(Tree::try_from("a").unwrap(), Tree::new("a".to_string()));
+    }
+
+
+    #[test] fn test_node_locate_by_path() {
+        let mut tree = tr(0) /(tr(1)/tr(2)) /(tr(3)/tr(4));
+        let path = vec![ 0,3 ];
+        assert_eq!(tree.root().locate_first_by_path( path.iter() ).unwrap().data(), &3 );
+
+
+        let mut root = tree.root_mut();
+        let path = vec![ 0,3 ];
+        let mut node3 = root.locate_first_mut_by_path(path.iter()).unwrap();
+        node3.push_back(tr(4));
+
+        println!("{:?}", tree.to_string())
+    }
+
+    #[test] fn test_node_locate_by_data() {
+        let mut t = Tree::try_from("   0( 1( 2 3bc) 4( 5 6 ) )  ".to_owned()).unwrap();
+        assert!(t.root().locate_first_by_data(&"3bc".to_string()).is_some());
+
+
+        let node = t.root().locate_first_by_data(&"2bc".to_string());
+        assert!(node.is_none());
+
+
+        let mut root = t.root_mut();
+        let mut node = root.locate_first_mut_by_data(&"3bc".to_string());
+        assert!(node.is_some());
+
+    }
+
+    #[test] fn test_ancestors() {
+        let mut t = Tree::try_from("   0( 1( 2 3bc) 4( 5 6 ) )  ".to_owned()).unwrap();
+        println!("{:?}", t.root().locate_first_by_data(&"3bc".to_string()).unwrap().ancestors());
+        println!("{:?}", t.to_string());
+    }
+
+    #[test] fn test_descendants() {
+        let mut t = Tree::try_from("   0( 1( 2 3bc) 4( 5 6 ) )  ".to_owned()).unwrap();
+        println!("{:?}", t.root().locate_first_by_data(&"1".to_string()).unwrap().descendants());
+        println!("{:?}", t.to_string());
+    }
+
+
+}
