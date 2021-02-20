@@ -1,6 +1,6 @@
 This project provides trees data structure serving for general purpose.
 
-## Quickstart
+# Quickstart
 
 Impatient readers can start with the
 [notations](https://oooutlk.github.io/trees/notations.html).

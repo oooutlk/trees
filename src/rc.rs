@@ -28,7 +28,9 @@ pub(crate) trait RefCount {
 impl RefCount for Cell<usize> {
     fn incr( &self ) {
         let count = self.get();
-        if count == 0 || count == usize::MAX {
+        #[cfg(      feature = "no_std"  )] use core::usize::MAX;
+        #[cfg( not( feature = "no_std" ))] use  std::usize::MAX;
+        if count == 0 || count == MAX {
             panic!();
         } else {
             self.set( count + 1 );
