@@ -184,3 +184,6 @@ impl<T> Drop for NodeVec<T> {
         unsafe{ self.buf.set_len( 0 ); }
     }
 }
+
+unsafe impl<T:Send> Send for NodeVec<T> {}
+unsafe impl<T:Sync> Sync for NodeVec<T> {}
