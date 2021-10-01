@@ -252,6 +252,9 @@ impl_debug_display_for_collection!( Tree, root() );
 impl_order_relations_for_collection!( Tree, root() );
 impl_hash_for_collection!( Tree, root() );
 
+unsafe impl<T:Send> Send for Tree<T> {}
+unsafe impl<T:Sync> Sync for Tree<T> {}
+
 #[cfg( test )]
 mod tests {
     use super::*;

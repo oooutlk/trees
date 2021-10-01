@@ -601,6 +601,9 @@ impl_debug_display_for_node!( Node, iter, data() );
 impl_order_relations_for_node!( Node, iter, data() );
 impl_hash_for_node!( Node, iter, data() );
 
+unsafe impl<T:Send> Send for Node<T> {}
+unsafe impl<T:Sync> Sync for Node<T> {}
+
 #[cfg( miri )]
 mod miri_tests {
     #[test] fn has_no_child() {
