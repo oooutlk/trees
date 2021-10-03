@@ -189,6 +189,22 @@ impl<T> Node<T> {
         None
     }
 
+    /// Returns a mutable reference to the parent node of this node,
+    /// or None if it is the root node. Ensure that there is only one reference to the returned value.
+    /// Also see the `parent` method.
+    pub unsafe fn parent_mut( &self ) -> Option<&mut Node<T>> {
+        let mut node = self.non_null();
+        while let Some( parent ) = node.as_ref().up {
+            if parent.as_ref().is_forest() {
+                node = parent;
+            } else {
+                return Some( &mut *parent.as_ptr() );
+            }
+        }
+        None
+    }
+
+
     /// Inserts sib tree before `self`.
     /// The newly inserted node will not be iterated over by the currently running iterator.
     ///
