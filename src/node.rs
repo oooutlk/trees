@@ -190,17 +190,15 @@ impl<T> Node<T> {
     }
 
     /// Returns a mutable reference to the parent node of this node,
-    /// or None if it is the root node.
+    /// or None if it is the root node. Ensure that there is only one reference to the returned value.
     /// Also see the `parent` method.
-    pub fn parent_mut( &self ) -> Option<&mut Node<T>> {
+    pub unsafe fn parent_mut( &self ) -> Option<&mut Node<T>> {
         let mut node = self.non_null();
-        unsafe {
-            while let Some( parent ) = node.as_ref().up {
-                if parent.as_ref().is_forest() {
-                    node = parent;
-                } else {
-                    return Some( &mut *parent.as_ptr() );
-                }
+        while let Some( parent ) = node.as_ref().up {
+            if parent.as_ref().is_forest() {
+                node = parent;
+            } else {
+                return Some( &mut *parent.as_ptr() );
             }
         }
         None
